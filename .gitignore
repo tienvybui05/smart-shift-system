@@ -1,0 +1,22 @@
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# IDE & Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & Logs
+.env
+*.log
+
+# Dependencies & Build outputs (Backup cho cả BE & FE)
+**/node_modules/
+**/target/
+**/dist/
+**/build/
