@@ -1,3 +1,16 @@
 spring:
   application:
     name: smart-shift-be
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/smart_shift_db}
+    username: ${SPRING_DATASOURCE_USERNAME:smart_shift}
+    password: ${SPRING_DATASOURCE_PASSWORD:smart_shift_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
