@@ -12,5 +12,7 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
 
     boolean existsByCode(String code);
 
+    boolean existsByName(String name);
+
     List<Position> findAllByActiveTrue();
 }
