@@ -2,6 +2,7 @@ package com.smartshift.exception;
 
 import com.smartshift.dto.common.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,19 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ApiErrorResponse> handleBusinessRule(
+        BusinessRuleException exception,
+        HttpServletRequest request
+    ) {
+        return buildResponse(
+            HttpStatus.BAD_REQUEST,
+            exception.getMessage(),
+            request.getRequestURI(),
+            Map.of()
+        );
+    }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(
@@ -72,6 +86,27 @@ public class GlobalExceptionHandler {
         return buildResponse(
             HttpStatus.BAD_REQUEST,
             "Dữ liệu gửi lên không hợp lệ",
+            request.getRequestURI(),
+            fieldErrors
+        );
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleConstraintViolation(
+        ConstraintViolationException exception,
+        HttpServletRequest request
+    ) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        exception.getConstraintViolations().forEach(violation ->
+            fieldErrors.putIfAbsent(
+                violation.getPropertyPath().toString(),
+                violation.getMessage()
+            )
+        );
+
+        return buildResponse(
+            HttpStatus.BAD_REQUEST,
+            "Tham số gửi lên không hợp lệ",
             request.getRequestURI(),
             fieldErrors
         );

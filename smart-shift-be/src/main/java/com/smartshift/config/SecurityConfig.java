@@ -1,6 +1,7 @@
 package com.smartshift.config;
 
 import com.smartshift.security.CustomUserDetailsService;
+import com.smartshift.security.ActiveUserJwtValidator;
 import com.smartshift.security.RestAccessDeniedHandler;
 import com.smartshift.security.RestAuthenticationEntryPoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -72,13 +74,17 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder(
         SecretKey secretKey,
-        JwtProperties properties
+        JwtProperties properties,
+        ActiveUserJwtValidator activeUserJwtValidator
     ) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
             .macAlgorithm(MacAlgorithm.HS256)
             .build();
         decoder.setJwtValidator(
-            JwtValidators.createDefaultWithIssuer(properties.issuer())
+            new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(properties.issuer()),
+                activeUserJwtValidator
+            )
         );
         return decoder;
     }
@@ -113,9 +119,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/users/me/password"
+                ).authenticated()
+                .requestMatchers(
                     "/api/locations/**",
                     "/api/positions/**",
-                    "/api/roles/**"
+                    "/api/roles/**",
+                    "/api/users/**"
                 ).hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
