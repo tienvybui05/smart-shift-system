@@ -28,6 +28,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-smart_shift_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-smart_shift}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-smart_shift_password}
+      JWT_SECRET: ${JWT_SECRET:-smart-shift-development-jwt-secret-change-me-2026}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-PT1H}
+      BOOTSTRAP_ADMIN_ENABLED: ${BOOTSTRAP_ADMIN_ENABLED:-true}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-admin}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-Admin@123456}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -47,4 +52,3 @@ services:
 
 volumes:
   postgres_data:
-

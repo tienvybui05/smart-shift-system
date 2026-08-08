@@ -20,6 +20,19 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(
+        InvalidCredentialsException exception,
+        HttpServletRequest request
+    ) {
+        return buildResponse(
+            HttpStatus.UNAUTHORIZED,
+            exception.getMessage(),
+            request.getRequestURI(),
+            Map.of()
+        );
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(
         ResourceNotFoundException exception,
@@ -125,4 +138,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(response);
     }
 }
-
