@@ -393,6 +393,7 @@
   font-size: 13px;
   font-weight: 600;
   text-align: left;
+  text-decoration: none;
 }
 
 .nav-item--active {
@@ -444,6 +445,16 @@
   border-bottom: 1px solid #e7e9f0;
   background: rgb(255 255 255 / 91%);
   backdrop-filter: blur(14px);
+}
+
+.header-leading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-menu-button {
+  display: none;
 }
 
 .header-date {
@@ -695,6 +706,159 @@
   white-space: nowrap;
 }
 
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.page-heading h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.page-heading p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.management-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 6px 22px rgb(25 30 58 / 4%);
+}
+
+.filter-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.7fr) repeat(3, minmax(150px, 1fr)) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.filter-panel .ant-input-affix-wrapper,
+.filter-panel .ant-input-group-addon .ant-btn,
+.filter-panel .ant-select-selector,
+.filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.employee-table-card {
+  overflow: hidden;
+}
+
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.table-heading strong {
+  color: #30384c;
+  font-size: 15px;
+}
+
+.table-heading span {
+  color: #9298a8;
+  font-size: 11px;
+}
+
+.employee-table-card .ant-table-wrapper {
+  padding: 0 10px 10px;
+}
+
+.employee-table-card .ant-table-thead > tr > th {
+  color: #7c8395;
+  background: #fafafd;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.employee-table-card .ant-table-tbody > tr > td {
+  font-size: 12px;
+}
+
+.employee-cell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.employee-cell strong {
+  overflow: hidden;
+  color: #30384c;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-cell span {
+  overflow: hidden;
+  color: #9298a8;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-cell--normal strong {
+  font-weight: 600;
+}
+
+.drawer-actions,
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.user-form-drawer .ant-drawer-body {
+  padding: 24px 28px 36px;
+}
+
+.form-section-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.form-section-intro strong {
+  color: #30384c;
+  font-size: 14px;
+}
+
+.form-section-intro span,
+.modal-description {
+  color: #858c9e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.modal-description {
+  margin: 0 0 20px;
+}
+
+.mobile-navigation-drawer .sidebar-brand {
+  padding-top: 0;
+}
+
 @media (max-width: 1050px) {
   .login-page {
     grid-template-columns: minmax(380px, 0.85fr) minmax(460px, 1.15fr);
@@ -722,6 +886,14 @@
 
   .account-details > div:nth-child(n + 4) {
     border-top: 1px solid var(--line);
+  }
+
+  .filter-panel {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .employee-search {
+    grid-column: span 2;
   }
 }
 
@@ -760,6 +932,10 @@
     margin-left: 0;
   }
 
+  .mobile-menu-button {
+    display: inline-flex;
+  }
+
   .welcome-panel {
     align-items: flex-start;
     flex-direction: column;
@@ -785,6 +961,10 @@
 
   .account-details > div:nth-child(even) {
     border-right: 0;
+  }
+
+  .page-heading {
+    align-items: flex-start;
   }
 }
 
@@ -817,6 +997,26 @@
 
   .dashboard-content {
     padding: 20px 16px 34px;
+  }
+
+  .page-heading {
+    flex-direction: column;
+  }
+
+  .page-heading > .ant-btn {
+    width: 100%;
+  }
+
+  .filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-search {
+    grid-column: auto;
+  }
+
+  .table-heading {
+    padding: 17px 16px;
   }
 
   .welcome-panel {
