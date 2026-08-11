@@ -1,5 +1,10 @@
 import httpClient from '../api/httpClient.js'
 
+export async function getLocations() {
+  const response = await httpClient.get('/locations')
+  return response.data
+}
+
 export async function getUserReferences() {
   const [rolesResponse, locationsResponse, positionsResponse] = await Promise.all([
     httpClient.get('/roles'),

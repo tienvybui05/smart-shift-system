@@ -10,6 +10,9 @@ const AppLayout = lazy(() => import('./components/AppLayout.jsx'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'))
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
 const UserManagementPage = lazy(() => import('./pages/users/UserManagementPage.jsx'))
+const ShiftTemplateManagementPage = lazy(
+  () => import('./pages/shifts/ShiftTemplateManagementPage.jsx'),
+)
 
 export default function App() {
   return (
@@ -24,6 +27,10 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route element={<AdminOnlyRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />
+              <Route
+                path="admin/shift-templates"
+                element={<ShiftTemplateManagementPage />}
+              />
             </Route>
           </Route>
         </Route>

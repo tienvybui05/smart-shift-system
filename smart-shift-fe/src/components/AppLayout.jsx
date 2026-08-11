@@ -53,6 +53,15 @@ function SidebarContent({ role, onNavigate }) {
             <TeamOutlined /> Nhân viên
           </NavLink>
         )}
+        {role === 'ROLE_ADMIN' && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/admin/shift-templates"
+          >
+            <ClockCircleOutlined /> Mẫu ca
+          </NavLink>
+        )}
         <button className="nav-item" type="button" disabled>
           <CalendarOutlined /> Lịch làm việc
         </button>

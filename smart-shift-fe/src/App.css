@@ -832,6 +832,53 @@
   padding: 24px 28px 36px;
 }
 
+.shift-template-form-drawer .ant-drawer-body {
+  padding: 24px 28px 36px;
+}
+
+.shift-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.7fr) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.shift-filter-panel .ant-select-selector,
+.shift-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.shift-template-cell,
+.shift-time-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.shift-template-cell strong,
+.shift-time-cell strong {
+  color: #30384c;
+  font-size: 12px;
+}
+
+.shift-color-dot {
+  width: 10px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 7%);
+}
+
+.shift-color-input {
+  height: 32px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.shift-time-section {
+  margin-top: 14px;
+}
+
 .form-section-intro {
   display: flex;
   flex-direction: column;
@@ -889,6 +936,10 @@
   }
 
   .filter-panel {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .shift-filter-panel {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 
@@ -1008,6 +1059,10 @@
   }
 
   .filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .shift-filter-panel {
     grid-template-columns: 1fr;
   }
 
