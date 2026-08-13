@@ -13,6 +13,12 @@ const UserManagementPage = lazy(() => import('./pages/users/UserManagementPage.j
 const ShiftTemplateManagementPage = lazy(
   () => import('./pages/shifts/ShiftTemplateManagementPage.jsx'),
 )
+const SchedulePeriodManagementPage = lazy(
+  () => import('./pages/schedules/SchedulePeriodManagementPage.jsx'),
+)
+const WorkShiftManagementPage = lazy(
+  () => import('./pages/workshifts/WorkShiftManagementPage.jsx'),
+)
 
 export default function App() {
   return (
@@ -30,6 +36,14 @@ export default function App() {
               <Route
                 path="admin/shift-templates"
                 element={<ShiftTemplateManagementPage />}
+              />
+              <Route
+                path="admin/schedule-periods"
+                element={<SchedulePeriodManagementPage />}
+              />
+              <Route
+                path="admin/work-shifts"
+                element={<WorkShiftManagementPage />}
               />
             </Route>
           </Route>

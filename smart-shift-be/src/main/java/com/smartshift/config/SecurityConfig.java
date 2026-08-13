@@ -126,8 +126,10 @@ public class SecurityConfig {
                     "/api/locations/**",
                     "/api/positions/**",
                     "/api/roles/**",
+                    "/api/schedule-periods/**",
                     "/api/shift-templates/**",
-                    "/api/users/**"
+                    "/api/users/**",
+                    "/api/work-shifts/**"
                 ).hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

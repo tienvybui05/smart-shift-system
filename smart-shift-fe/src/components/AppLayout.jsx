@@ -62,9 +62,24 @@ function SidebarContent({ role, onNavigate }) {
             <ClockCircleOutlined /> Mẫu ca
           </NavLink>
         )}
-        <button className="nav-item" type="button" disabled>
-          <CalendarOutlined /> Lịch làm việc
-        </button>
+        {role === 'ROLE_ADMIN' && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/admin/schedule-periods"
+          >
+            <CalendarOutlined /> Kỳ xếp lịch
+          </NavLink>
+        )}
+        {role === 'ROLE_ADMIN' && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/admin/work-shifts"
+          >
+            <CalendarOutlined /> Lịch làm việc
+          </NavLink>
+        )}
         <button className="nav-item" type="button" disabled>
           <SwapOutlined /> Đổi ca
         </button>
