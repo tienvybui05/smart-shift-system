@@ -4,15 +4,19 @@ import {
   PlayCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
+  TeamOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Popconfirm, Select, Space, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
+import ShiftRequirementDrawer from '../../components/requirements/ShiftRequirementDrawer.jsx'
 import GenerateWorkShiftsModal from '../../components/workshifts/GenerateWorkShiftsModal.jsx'
 import WorkShiftFormDrawer from '../../components/workshifts/WorkShiftFormDrawer.jsx'
+import { getPositions } from '../../services/referenceService.js'
 import { getSchedulePeriods } from '../../services/schedulePeriodService.js'
+import { saveShiftRequirements } from '../../services/shiftRequirementService.js'
 import { getShiftTemplates } from '../../services/shiftTemplateService.js'
 import {
   createWorkShift,
@@ -56,6 +60,8 @@ export default function WorkShiftManagementPage() {
   const initialPeriodId = Number(searchParams.get('periodId')) || undefined
   const [messageApi, messageContext] = message.useMessage()
   const [schedulePeriods, setSchedulePeriods] = useState([])
+  const [positions, setPositions] = useState([])
+  const [positionsLoading, setPositionsLoading] = useState(true)
   const [periodsLoading, setPeriodsLoading] = useState(true)
   const [selectedPeriodId, setSelectedPeriodId] = useState(initialPeriodId)
   const [shiftTemplates, setShiftTemplates] = useState([])
@@ -67,6 +73,7 @@ export default function WorkShiftManagementPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [generateModalOpen, setGenerateModalOpen] = useState(false)
   const [editingWorkShift, setEditingWorkShift] = useState(null)
+  const [requirementWorkShift, setRequirementWorkShift] = useState(null)
   const [statusChangingId, setStatusChangingId] = useState(null)
 
   const selectedPeriod = schedulePeriods.find(
@@ -88,6 +95,26 @@ export default function WorkShiftManagementPage() {
       })
       .finally(() => {
         if (mounted) setPeriodsLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [messageApi])
+
+  useEffect(() => {
+    let mounted = true
+    getPositions()
+      .then((result) => {
+        if (mounted) setPositions(result)
+      })
+      .catch((error) => {
+        if (mounted) {
+          messageApi.error(getApiErrorMessage(error, 'Không thể tải danh mục vị trí.'))
+        }
+      })
+      .finally(() => {
+        if (mounted) setPositionsLoading(false)
       })
 
     return () => {
@@ -203,6 +230,17 @@ export default function WorkShiftManagementPage() {
     }
   }
 
+  async function handleSaveRequirements(payload) {
+    const result = await saveShiftRequirements(requirementWorkShift.id, payload)
+    if (result.affectedShiftCount > 1) {
+      messageApi.success(
+        `Đã lưu nhu cầu cho ${result.affectedShiftCount} ca cùng mẫu.`,
+      )
+    } else {
+      messageApi.success('Đã lưu nhu cầu nhân sự cho ca.')
+    }
+  }
+
   const columns = [
     {
       title: 'Ngày làm việc',
@@ -260,13 +298,23 @@ export default function WorkShiftManagementPage() {
       title: 'Thao tác',
       key: 'actions',
       fixed: 'right',
-      width: 110,
+      width: 145,
       align: 'center',
       render: (_, workShift) => {
         const canChangeStatus = periodEditable
           && ['OPEN', 'CANCELLED'].includes(workShift.status)
         return (
           <Space size={2}>
+            <Tooltip title="Nhu cầu nhân sự">
+              <span>
+                <Button
+                  disabled={positionsLoading}
+                  type="text"
+                  icon={<TeamOutlined />}
+                  onClick={() => setRequirementWorkShift(workShift)}
+                />
+              </span>
+            </Tooltip>
             <Tooltip title={workShift.status === 'OPEN' && periodEditable
               ? 'Cập nhật'
               : 'Chỉ có thể sửa ca đang mở trong kỳ Nháp'}>
@@ -419,6 +467,17 @@ export default function WorkShiftManagementPage() {
         shiftTemplates={shiftTemplates}
         onClose={() => setDrawerOpen(false)}
         onSubmit={handleSave}
+      />
+
+      <ShiftRequirementDrawer
+        open={Boolean(requirementWorkShift)}
+        workShift={requirementWorkShift}
+        positions={positions}
+        editable={Boolean(
+          periodEditable && requirementWorkShift?.status === 'OPEN'
+        )}
+        onClose={() => setRequirementWorkShift(null)}
+        onSubmit={handleSaveRequirements}
       />
 
       <GenerateWorkShiftsModal

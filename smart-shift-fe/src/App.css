@@ -834,7 +834,8 @@
 
 .shift-template-form-drawer .ant-drawer-body,
 .schedule-period-form-drawer .ant-drawer-body,
-.work-shift-form-drawer .ant-drawer-body {
+.work-shift-form-drawer .ant-drawer-body,
+.shift-requirement-drawer .ant-drawer-body {
   padding: 24px 28px 36px;
 }
 
@@ -874,6 +875,105 @@
   color: #30384c;
   font-size: 12px;
   text-transform: capitalize;
+}
+
+.requirement-shift-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fafafd;
+}
+
+.requirement-shift-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.requirement-shift-summary strong {
+  color: #30384c;
+  font-size: 14px;
+}
+
+.requirement-shift-summary span {
+  color: #858c9e;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.requirement-readonly-alert {
+  margin-bottom: 20px;
+}
+
+.requirement-loading {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+}
+
+.requirement-total-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.requirement-total-bar > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid #e6e2ff;
+  border-radius: 12px;
+  background: #f7f5ff;
+}
+
+.requirement-total-bar span {
+  color: #86809c;
+  font-size: 10px;
+}
+
+.requirement-total-bar strong {
+  color: #51469b;
+  font-size: 15px;
+}
+
+.requirement-priority-help {
+  margin: -6px 0 14px;
+  color: #858c9e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.requirement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.requirement-row {
+  padding: 14px 14px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+
+.requirement-delete--labeled {
+  padding-top: 30px;
+}
+
+.requirement-add-button {
+  margin-top: 4px;
+}
+
+.requirement-apply-switch {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 
 .shift-filter-panel {
@@ -1118,6 +1218,10 @@
 
   .work-shift-filter-panel,
   .generate-date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .requirement-total-bar {
     grid-template-columns: 1fr;
   }
 

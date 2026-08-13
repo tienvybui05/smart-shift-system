@@ -5,6 +5,11 @@ export async function getLocations() {
   return response.data
 }
 
+export async function getPositions() {
+  const response = await httpClient.get('/positions')
+  return response.data
+}
+
 export async function getUserReferences() {
   const [rolesResponse, locationsResponse, positionsResponse] = await Promise.all([
     httpClient.get('/roles'),

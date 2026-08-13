@@ -36,4 +36,10 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
         Instant startAt,
         Long id
     );
+
+    List<WorkShift> findAllBySchedulePeriodIdAndShiftTemplateIdAndStatus(
+        Long schedulePeriodId,
+        Long shiftTemplateId,
+        WorkShiftStatus status
+    );
 }

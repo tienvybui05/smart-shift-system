@@ -127,6 +127,7 @@ public class SecurityConfig {
                     "/api/positions/**",
                     "/api/roles/**",
                     "/api/schedule-periods/**",
+                    "/api/shift-requirements/**",
                     "/api/shift-templates/**",
                     "/api/users/**",
                     "/api/work-shifts/**"
