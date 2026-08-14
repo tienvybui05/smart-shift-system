@@ -123,6 +123,13 @@ public class SecurityConfig {
                     "/api/users/me/password"
                 ).authenticated()
                 .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/employee-availabilities/users/**"
+                ).hasRole("ADMIN")
+                .requestMatchers(
+                    "/api/employee-availabilities/me/**"
+                ).authenticated()
+                .requestMatchers(
                     "/api/locations/**",
                     "/api/positions/**",
                     "/api/roles/**",

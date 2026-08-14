@@ -835,7 +835,8 @@
 .shift-template-form-drawer .ant-drawer-body,
 .schedule-period-form-drawer .ant-drawer-body,
 .work-shift-form-drawer .ant-drawer-body,
-.shift-requirement-drawer .ant-drawer-body {
+.shift-requirement-drawer .ant-drawer-body,
+.availability-form-drawer .ant-drawer-body {
   padding: 24px 28px 36px;
 }
 
@@ -976,6 +977,86 @@
   border-top: 1px solid var(--line);
 }
 
+.availability-help-alert {
+  margin-bottom: 24px;
+}
+
+.availability-type-help {
+  margin: -16px 0 22px;
+  color: #858c9e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.availability-view-switch {
+  width: min(100%, 480px);
+}
+
+.availability-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(160px, 0.7fr) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.availability-filter-panel:has(.ant-select) {
+  grid-template-columns: minmax(280px, 1.5fr) minmax(170px, 0.7fr) minmax(170px, 0.7fr) auto;
+}
+
+.availability-filter-panel .ant-input,
+.availability-filter-panel .ant-select-selector,
+.availability-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.availability-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.availability-summary-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 17px 19px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+}
+
+.availability-summary-card span {
+  align-self: end;
+  color: #737b90;
+  font-size: 11px;
+}
+
+.availability-summary-card strong {
+  grid-row: span 2;
+  color: #30384c;
+  font-size: 25px;
+}
+
+.availability-summary-card small {
+  color: #a0a5b3;
+  font-size: 9px;
+}
+
+.availability-summary-card--preferred { border-top: 3px solid #27ae7b; }
+.availability-summary-card--available { border-top: 3px solid #468ee5; }
+.availability-summary-card--unavailable { border-top: 3px solid #e66464; }
+
+.availability-date {
+  color: #30384c;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.empty-value {
+  color: #adb1bc;
+  font-style: italic;
+}
+
 .shift-filter-panel {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.7fr) auto;
@@ -1084,6 +1165,11 @@
   }
 
   .work-shift-filter-panel {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .availability-filter-panel,
+  .availability-filter-panel:has(.ant-select) {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 
@@ -1222,6 +1308,12 @@
   }
 
   .requirement-total-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-filter-panel,
+  .availability-filter-panel:has(.ant-select),
+  .availability-summary-grid {
     grid-template-columns: 1fr;
   }
 

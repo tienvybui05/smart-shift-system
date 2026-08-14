@@ -80,6 +80,13 @@ function SidebarContent({ role, onNavigate }) {
             <CalendarOutlined /> Lịch làm việc
           </NavLink>
         )}
+        <NavLink
+          className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+          onClick={onNavigate}
+          to="/availability"
+        >
+          <ClockCircleOutlined /> Lịch rảnh
+        </NavLink>
         <button className="nav-item" type="button" disabled>
           <SwapOutlined /> Đổi ca
         </button>
