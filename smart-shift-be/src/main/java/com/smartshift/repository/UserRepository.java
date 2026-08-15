@@ -30,6 +30,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByLocationIdAndActiveTrue(Long locationId);
 
     @EntityGraph(attributePaths = {"role", "location", "position"})
+    List<User> findAllByLocationIdAndPositionIdAndActiveTrueOrderByFullNameAsc(
+        Long locationId,
+        Long positionId
+    );
+
+    @EntityGraph(attributePaths = {"role", "location", "position"})
     @Query("""
         SELECT user
         FROM User user

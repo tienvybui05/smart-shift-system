@@ -22,6 +22,9 @@ const WorkShiftManagementPage = lazy(
 const AvailabilityManagementPage = lazy(
   () => import('./pages/availability/AvailabilityManagementPage.jsx'),
 )
+const MyWorkSchedulePage = lazy(
+  () => import('./pages/schedules/MyWorkSchedulePage.jsx'),
+)
 
 export default function App() {
   return (
@@ -34,6 +37,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
+            <Route path="my-schedule" element={<MyWorkSchedulePage />} />
             <Route path="availability" element={<AvailabilityManagementPage />} />
             <Route element={<AdminOnlyRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />

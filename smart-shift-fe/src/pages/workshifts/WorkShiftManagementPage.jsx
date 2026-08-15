@@ -6,11 +6,13 @@ import {
   ReloadOutlined,
   TeamOutlined,
   ThunderboltOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Popconfirm, Select, Space, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
+import ShiftAssignmentDrawer from '../../components/assignments/ShiftAssignmentDrawer.jsx'
 import ShiftRequirementDrawer from '../../components/requirements/ShiftRequirementDrawer.jsx'
 import GenerateWorkShiftsModal from '../../components/workshifts/GenerateWorkShiftsModal.jsx'
 import WorkShiftFormDrawer from '../../components/workshifts/WorkShiftFormDrawer.jsx'
@@ -74,6 +76,7 @@ export default function WorkShiftManagementPage() {
   const [generateModalOpen, setGenerateModalOpen] = useState(false)
   const [editingWorkShift, setEditingWorkShift] = useState(null)
   const [requirementWorkShift, setRequirementWorkShift] = useState(null)
+  const [assignmentWorkShift, setAssignmentWorkShift] = useState(null)
   const [statusChangingId, setStatusChangingId] = useState(null)
 
   const selectedPeriod = schedulePeriods.find(
@@ -298,13 +301,23 @@ export default function WorkShiftManagementPage() {
       title: 'Thao tác',
       key: 'actions',
       fixed: 'right',
-      width: 145,
+      width: 185,
       align: 'center',
       render: (_, workShift) => {
         const canChangeStatus = periodEditable
           && ['OPEN', 'CANCELLED'].includes(workShift.status)
         return (
           <Space size={2}>
+            <Tooltip title="Phân công nhân viên">
+              <span>
+                <Button
+                  disabled={!['OPEN', 'FILLED'].includes(workShift.status)}
+                  type="text"
+                  icon={<UserAddOutlined />}
+                  onClick={() => setAssignmentWorkShift(workShift)}
+                />
+              </span>
+            </Tooltip>
             <Tooltip title="Nhu cầu nhân sự">
               <span>
                 <Button
@@ -478,6 +491,20 @@ export default function WorkShiftManagementPage() {
         )}
         onClose={() => setRequirementWorkShift(null)}
         onSubmit={handleSaveRequirements}
+      />
+
+      <ShiftAssignmentDrawer
+        open={Boolean(assignmentWorkShift)}
+        workShift={assignmentWorkShift}
+        editable={Boolean(
+          periodEditable
+            && ['OPEN', 'FILLED'].includes(assignmentWorkShift?.status)
+        )}
+        onClose={() => setAssignmentWorkShift(null)}
+        onChanged={() => {
+          setLoading(true)
+          setRefreshKey((current) => current + 1)
+        }}
       />
 
       <GenerateWorkShiftsModal

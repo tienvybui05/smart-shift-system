@@ -8,12 +8,14 @@ import com.smartshift.entity.Position;
 import com.smartshift.entity.SchedulePeriod;
 import com.smartshift.entity.ShiftRequirement;
 import com.smartshift.entity.WorkShift;
+import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.ResourceNotFoundException;
 import com.smartshift.mapper.ShiftRequirementMapper;
 import com.smartshift.repository.PositionRepository;
+import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.ShiftRequirementRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.ShiftRequirementService;
@@ -33,7 +35,11 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class ShiftRequirementServiceImpl implements ShiftRequirementService {
 
+    private static final List<AssignmentStatus> ACTIVE_ASSIGNMENT_STATUSES =
+        List.of(AssignmentStatus.ASSIGNED, AssignmentStatus.CONFIRMED);
+
     private final ShiftRequirementRepository shiftRequirementRepository;
+    private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final WorkShiftRepository workShiftRepository;
     private final PositionRepository positionRepository;
     private final ShiftRequirementMapper shiftRequirementMapper;
@@ -128,9 +134,86 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
                 requirement.getPosition().getId()
             ))
             .toList();
+        validateAgainstCurrentAssignments(
+            workShift,
+            requests,
+            requirementsToDelete
+        );
         shiftRequirementRepository.deleteAll(requirementsToDelete);
         shiftRequirementRepository.saveAll(requirementsToSave);
         shiftRequirementRepository.flush();
+        refreshWorkShiftStatus(workShift, requests);
+    }
+
+    private void validateAgainstCurrentAssignments(
+        WorkShift workShift,
+        List<ShiftRequirementItemRequest> requests,
+        List<ShiftRequirement> requirementsToDelete
+    ) {
+        for (ShiftRequirement requirement : requirementsToDelete) {
+            long assigned = countActiveAssignments(
+                workShift.getId(),
+                requirement.getPosition().getId()
+            );
+            if (assigned > 0) {
+                throw new BusinessRuleException(
+                    "Không thể xóa nhu cầu vị trí '"
+                        + requirement.getPosition().getName()
+                        + "' vì đã có " + assigned + " nhân viên được phân công"
+                );
+            }
+        }
+
+        for (ShiftRequirementItemRequest request : requests) {
+            long assigned = countActiveAssignments(
+                workShift.getId(),
+                request.positionId()
+            );
+            if (assigned > request.maxEmployees()) {
+                Position position = positionRepository
+                    .findById(request.positionId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy vị trí có id " + request.positionId()
+                    ));
+                throw new BusinessRuleException(
+                    "Số tối đa của vị trí '" + position.getName()
+                        + "' không được nhỏ hơn " + assigned
+                        + " nhân viên đã phân công"
+                );
+            }
+        }
+    }
+
+    private void refreshWorkShiftStatus(
+        WorkShift workShift,
+        List<ShiftRequirementItemRequest> requests
+    ) {
+        int totalMinimum = requests.stream()
+            .mapToInt(ShiftRequirementItemRequest::minEmployees)
+            .sum();
+        boolean minimumStaffed = totalMinimum > 0
+            && requests.stream().allMatch(request ->
+                countActiveAssignments(
+                    workShift.getId(),
+                    request.positionId()
+                ) >= request.minEmployees()
+            );
+        workShift.setStatus(
+            minimumStaffed ? WorkShiftStatus.FILLED : WorkShiftStatus.OPEN
+        );
+        workShiftRepository.save(workShift);
+    }
+
+    private long countActiveAssignments(
+        Long workShiftId,
+        Long positionId
+    ) {
+        return shiftAssignmentRepository
+            .countByWorkShiftIdAndPositionIdAndStatusIn(
+                workShiftId,
+                positionId,
+                ACTIVE_ASSIGNMENT_STATUSES
+            );
     }
 
     private List<WorkShift> findTargetWorkShifts(

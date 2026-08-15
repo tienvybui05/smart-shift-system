@@ -836,6 +836,7 @@
 .schedule-period-form-drawer .ant-drawer-body,
 .work-shift-form-drawer .ant-drawer-body,
 .shift-requirement-drawer .ant-drawer-body,
+.shift-assignment-drawer .ant-drawer-body,
 .availability-form-drawer .ant-drawer-body {
   padding: 24px 28px 36px;
 }
@@ -975,6 +976,175 @@
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
+}
+
+.assignment-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 17px;
+  border: 1px solid #e5e1ff;
+  border-radius: 13px;
+  background: #f8f7ff;
+}
+
+.assignment-overview > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.assignment-overview span {
+  color: #87839b;
+  font-size: 10px;
+}
+
+.assignment-overview strong {
+  color: #4d4581;
+  font-size: 14px;
+}
+
+.assignment-requirement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.assignment-requirement-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: #62697a;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.assignment-requirement-card:hover,
+.assignment-requirement-card--selected {
+  border-color: #8d83e8;
+  box-shadow: 0 6px 18px rgb(91 76 240 / 9%);
+}
+
+.assignment-requirement-card--selected {
+  background: #faf9ff;
+}
+
+.assignment-requirement-card > span {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignment-requirement-card strong {
+  color: #3b4050;
+  font-size: 14px;
+}
+
+.assignment-requirement-card small {
+  color: #959aaa;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.assignment-section {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+
+.assignment-section .table-heading {
+  padding: 15px 17px;
+  border-bottom: 1px solid var(--line);
+}
+
+.assignment-section .ant-table-wrapper {
+  padding: 0 8px 8px;
+}
+
+.assignment-hours-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #777e90;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.my-schedule-draft-alert {
+  margin-bottom: 18px;
+}
+
+.my-schedule-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.my-schedule-filter-panel .ant-input,
+.my-schedule-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.my-schedule-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.my-schedule-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.my-schedule-summary-card > .anticon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  color: #5b4cf0;
+  font-size: 17px;
+  background: #efedff;
+  place-items: center;
+}
+
+.my-schedule-summary-card > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.my-schedule-summary-card span {
+  color: #8c92a2;
+  font-size: 10px;
+}
+
+.my-schedule-summary-card strong {
+  overflow: hidden;
+  color: #343a4b;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-schedule-date {
+  color: #30384c;
+  font-size: 12px;
+  text-transform: capitalize;
 }
 
 .availability-help-alert {
@@ -1311,9 +1481,20 @@
     grid-template-columns: 1fr;
   }
 
+  .assignment-overview,
+  .assignment-requirement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-overview > .ant-tag {
+    width: fit-content;
+  }
+
   .availability-filter-panel,
   .availability-filter-panel:has(.ant-select),
-  .availability-summary-grid {
+  .availability-summary-grid,
+  .my-schedule-filter-panel,
+  .my-schedule-summary-grid {
     grid-template-columns: 1fr;
   }
 

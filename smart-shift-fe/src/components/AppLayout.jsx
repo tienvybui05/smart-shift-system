@@ -5,6 +5,7 @@ import {
   LogoutOutlined,
   MenuOutlined,
   NotificationOutlined,
+  ScheduleOutlined,
   SettingOutlined,
   SwapOutlined,
   TeamOutlined,
@@ -44,6 +45,13 @@ function SidebarContent({ role, onNavigate }) {
         </NavLink>
 
         <span className="nav-section-label">Quản lý</span>
+        <NavLink
+          className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+          onClick={onNavigate}
+          to="/my-schedule"
+        >
+          <ScheduleOutlined /> Lịch của tôi
+        </NavLink>
         {role === 'ROLE_ADMIN' && (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}

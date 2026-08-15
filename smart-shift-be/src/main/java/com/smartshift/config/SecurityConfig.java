@@ -130,10 +130,15 @@ public class SecurityConfig {
                     "/api/employee-availabilities/me/**"
                 ).authenticated()
                 .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/shift-assignments/me"
+                ).authenticated()
+                .requestMatchers(
                     "/api/locations/**",
                     "/api/positions/**",
                     "/api/roles/**",
                     "/api/schedule-periods/**",
+                    "/api/shift-assignments/**",
                     "/api/shift-requirements/**",
                     "/api/shift-templates/**",
                     "/api/users/**",
