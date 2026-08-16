@@ -845,6 +845,57 @@
   margin-bottom: 24px;
 }
 
+.schedule-publication-modal .ant-modal-body {
+  max-height: min(72vh, 720px);
+  overflow-y: auto;
+}
+
+.publication-loading {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+}
+
+.publication-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.publication-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.publication-summary-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid #e7e3ff;
+  border-radius: 11px;
+  background: #faf9ff;
+}
+
+.publication-summary-grid span {
+  color: #8a869d;
+  font-size: 10px;
+}
+
+.publication-summary-grid strong {
+  color: #4e4685;
+  font-size: 17px;
+}
+
+.publication-staffing-gap,
+.publication-issue-message {
+  color: #c04444;
+  font-size: 11px;
+}
+
 .generate-shifts-alert {
   margin-bottom: 20px;
 }
@@ -1484,6 +1535,10 @@
   .assignment-overview,
   .assignment-requirement-grid {
     grid-template-columns: 1fr;
+  }
+
+  .publication-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .assignment-overview > .ant-tag {

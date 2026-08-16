@@ -2,12 +2,15 @@ package com.smartshift.repository;
 
 import com.smartshift.entity.SchedulePeriod;
 import com.smartshift.enums.SchedulePeriodStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface SchedulePeriodRepository extends JpaRepository<SchedulePeriod, Long> {
 
@@ -40,4 +43,15 @@ public interface SchedulePeriodRepository extends JpaRepository<SchedulePeriod, 
         @Param("endDate") LocalDate endDate,
         @Param("excludedId") Long excludedId
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT schedulePeriod
+        FROM SchedulePeriod schedulePeriod
+        JOIN FETCH schedulePeriod.location location
+        JOIN FETCH schedulePeriod.createdBy createdBy
+        LEFT JOIN FETCH schedulePeriod.publishedBy publishedBy
+        WHERE schedulePeriod.id = :id
+        """)
+    Optional<SchedulePeriod> findByIdForUpdate(@Param("id") Long id);
 }

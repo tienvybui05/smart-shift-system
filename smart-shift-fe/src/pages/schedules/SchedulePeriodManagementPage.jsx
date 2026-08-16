@@ -1,13 +1,23 @@
-import { CalendarOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Select, Space, Table, Tag, Tooltip, message } from 'antd'
+import {
+  CalendarOutlined,
+  EditOutlined,
+  LockOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SendOutlined,
+} from '@ant-design/icons'
+import { Alert, Button, Popconfirm, Select, Space, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import SchedulePeriodFormDrawer from '../../components/schedules/SchedulePeriodFormDrawer.jsx'
+import SchedulePublicationModal from '../../components/schedules/SchedulePublicationModal.jsx'
 import { getLocations } from '../../services/referenceService.js'
 import {
   createSchedulePeriod,
   getSchedulePeriods,
+  lockSchedulePeriod,
+  publishSchedulePeriod,
   updateSchedulePeriod,
 } from '../../services/schedulePeriodService.js'
 
@@ -40,6 +50,8 @@ export default function SchedulePeriodManagementPage() {
   const [locationRefreshKey, setLocationRefreshKey] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingSchedulePeriod, setEditingSchedulePeriod] = useState(null)
+  const [publishingSchedulePeriod, setPublishingSchedulePeriod] = useState(null)
+  const [lockingId, setLockingId] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -114,6 +126,27 @@ export default function SchedulePeriodManagementPage() {
     setRefreshKey((current) => current + 1)
   }
 
+  async function handlePublish(id) {
+    await publishSchedulePeriod(id)
+    messageApi.success('Đã công bố lịch làm việc chính thức.')
+    setLoading(true)
+    setRefreshKey((current) => current + 1)
+  }
+
+  async function handleLock(schedulePeriod) {
+    setLockingId(schedulePeriod.id)
+    try {
+      await lockSchedulePeriod(schedulePeriod.id)
+      messageApi.success('Đã khóa kỳ xếp lịch.')
+      setLoading(true)
+      setRefreshKey((current) => current + 1)
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error, 'Không thể khóa kỳ xếp lịch.'))
+    } finally {
+      setLockingId(null)
+    }
+  }
+
   function retryLocations() {
     setLocationsLoading(true)
     setLocationError('')
@@ -158,16 +191,23 @@ export default function SchedulePeriodManagementPage() {
       title: 'Trạng thái',
       dataIndex: 'status',
       width: 145,
-      render: (status) => {
+      render: (status, schedulePeriod) => {
         const config = STATUS_CONFIG[status] || { label: status, color: 'default' }
-        return <Tag color={config.color}>{config.label}</Tag>
+        return (
+          <div className="employee-cell employee-cell--normal">
+            <span><Tag color={config.color}>{config.label}</Tag></span>
+            {schedulePeriod.publishedByName && (
+              <small>Công bố bởi {schedulePeriod.publishedByName}</small>
+            )}
+          </div>
+        )
       },
     },
     {
       title: 'Thao tác',
       key: 'actions',
       fixed: 'right',
-      width: 125,
+      width: 180,
       align: 'center',
       render: (_, schedulePeriod) => (
         <Space size={2}>
@@ -188,6 +228,32 @@ export default function SchedulePeriodManagementPage() {
               />
             </span>
           </Tooltip>
+          {schedulePeriod.status === 'DRAFT' && (
+            <Tooltip title="Kiểm tra và công bố lịch">
+              <Button
+                type="text"
+                icon={<SendOutlined />}
+                onClick={() => setPublishingSchedulePeriod(schedulePeriod)}
+              />
+            </Tooltip>
+          )}
+          {schedulePeriod.status === 'PUBLISHED' && (
+            <Popconfirm
+              cancelText="Hủy"
+              okText="Khóa lịch"
+              onConfirm={() => handleLock(schedulePeriod)}
+              title="Khóa kỳ xếp lịch này?"
+              description="Kỳ đã khóa được xem là dữ liệu cuối cùng để chấm công và tính lương."
+            >
+              <Tooltip title="Khóa kỳ lịch">
+                <Button
+                  type="text"
+                  icon={<LockOutlined />}
+                  loading={lockingId === schedulePeriod.id}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -282,6 +348,14 @@ export default function SchedulePeriodManagementPage() {
         locations={locations}
         onClose={() => setDrawerOpen(false)}
         onSubmit={handleSave}
+      />
+
+      <SchedulePublicationModal
+        open={Boolean(publishingSchedulePeriod)}
+        schedulePeriod={publishingSchedulePeriod}
+        onClose={() => setPublishingSchedulePeriod(null)}
+        onManageShifts={(id) => navigate(`/admin/work-shifts?periodId=${id}`)}
+        onPublish={handlePublish}
       />
     </>
   )

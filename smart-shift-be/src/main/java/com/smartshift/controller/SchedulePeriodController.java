@@ -2,6 +2,7 @@ package com.smartshift.controller;
 
 import com.smartshift.dto.schedule.SchedulePeriodRequest;
 import com.smartshift.dto.schedule.SchedulePeriodResponse;
+import com.smartshift.dto.schedule.SchedulePublicationCheckResponse;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.service.SchedulePeriodService;
 import jakarta.validation.Valid;
@@ -68,6 +69,37 @@ public class SchedulePeriodController {
     ) {
         return ResponseEntity.ok(
             schedulePeriodService.updateSchedulePeriod(id, request)
+        );
+    }
+
+    @GetMapping("/{id}/publication-check")
+    public ResponseEntity<SchedulePublicationCheckResponse> checkPublication(
+        @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+            schedulePeriodService.checkPublication(id)
+        );
+    }
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<SchedulePeriodResponse> publishSchedulePeriod(
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+            schedulePeriodService.publishSchedulePeriod(
+                id,
+                authentication.getName()
+            )
+        );
+    }
+
+    @PostMapping("/{id}/lock")
+    public ResponseEntity<SchedulePeriodResponse> lockSchedulePeriod(
+        @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+            schedulePeriodService.lockSchedulePeriod(id)
         );
     }
 }

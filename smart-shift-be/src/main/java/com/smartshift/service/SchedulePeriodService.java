@@ -2,6 +2,7 @@ package com.smartshift.service;
 
 import com.smartshift.dto.schedule.SchedulePeriodRequest;
 import com.smartshift.dto.schedule.SchedulePeriodResponse;
+import com.smartshift.dto.schedule.SchedulePublicationCheckResponse;
 import com.smartshift.enums.SchedulePeriodStatus;
 
 import java.util.List;
@@ -24,4 +25,13 @@ public interface SchedulePeriodService {
         Long id,
         SchedulePeriodRequest request
     );
+
+    SchedulePublicationCheckResponse checkPublication(Long id);
+
+    SchedulePeriodResponse publishSchedulePeriod(
+        Long id,
+        String currentUsername
+    );
+
+    SchedulePeriodResponse lockSchedulePeriod(Long id);
 }
