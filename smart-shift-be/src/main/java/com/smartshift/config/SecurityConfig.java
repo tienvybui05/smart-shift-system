@@ -130,6 +130,21 @@ public class SecurityConfig {
                     "/api/employee-availabilities/me/**"
                 ).authenticated()
                 .requestMatchers(
+                    "/api/time-off-requests/me",
+                    "/api/time-off-requests/me/**"
+                ).authenticated()
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/time-off-requests"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/time-off-requests/*/review"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    "/api/time-off-requests/**"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
                     HttpMethod.GET,
                     "/api/shift-assignments/me"
                 ).authenticated()

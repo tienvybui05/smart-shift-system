@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import AdminOrManagerRoute from './components/AdminOrManagerRoute.jsx'
 import AdminOnlyRoute from './components/AdminOnlyRoute.jsx'
 import AppLoading from './components/AppLoading.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
@@ -25,6 +26,12 @@ const AvailabilityManagementPage = lazy(
 const MyWorkSchedulePage = lazy(
   () => import('./pages/schedules/MyWorkSchedulePage.jsx'),
 )
+const MyTimeOffRequestsPage = lazy(
+  () => import('./pages/timeoff/MyTimeOffRequestsPage.jsx'),
+)
+const TimeOffReviewPage = lazy(
+  () => import('./pages/timeoff/TimeOffReviewPage.jsx'),
+)
 
 export default function App() {
   return (
@@ -39,6 +46,10 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="my-schedule" element={<MyWorkSchedulePage />} />
             <Route path="availability" element={<AvailabilityManagementPage />} />
+            <Route path="time-off" element={<MyTimeOffRequestsPage />} />
+            <Route element={<AdminOrManagerRoute />}>
+              <Route path="time-off/review" element={<TimeOffReviewPage />} />
+            </Route>
             <Route element={<AdminOnlyRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />
               <Route

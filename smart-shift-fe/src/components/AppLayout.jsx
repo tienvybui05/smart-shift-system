@@ -1,7 +1,9 @@
 import {
   CalendarOutlined,
+  CheckCircleOutlined,
   ClockCircleOutlined,
   DownOutlined,
+  FileTextOutlined,
   LogoutOutlined,
   MenuOutlined,
   NotificationOutlined,
@@ -95,6 +97,23 @@ function SidebarContent({ role, onNavigate }) {
         >
           <ClockCircleOutlined /> Lịch rảnh
         </NavLink>
+        <NavLink
+          className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+          end
+          onClick={onNavigate}
+          to="/time-off"
+        >
+          <FileTextOutlined /> Đơn xin nghỉ
+        </NavLink>
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_MANAGER') && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/time-off/review"
+          >
+            <CheckCircleOutlined /> Duyệt nghỉ phép
+          </NavLink>
+        )}
         <button className="nav-item" type="button" disabled>
           <SwapOutlined /> Đổi ca
         </button>

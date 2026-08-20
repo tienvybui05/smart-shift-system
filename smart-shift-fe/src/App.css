@@ -837,7 +837,8 @@
 .work-shift-form-drawer .ant-drawer-body,
 .shift-requirement-drawer .ant-drawer-body,
 .shift-assignment-drawer .ant-drawer-body,
-.availability-form-drawer .ant-drawer-body {
+.availability-form-drawer .ant-drawer-body,
+.time-off-form-drawer .ant-drawer-body {
   padding: 24px 28px 36px;
 }
 
@@ -1278,6 +1279,74 @@
   font-style: italic;
 }
 
+.time-off-help-alert {
+  margin-bottom: 24px;
+}
+
+.time-off-review-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(190px, 0.75fr) auto;
+  gap: 12px;
+  padding: 18px;
+}
+
+.time-off-review-filter-panel .ant-select-selector,
+.time-off-review-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.time-off-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.time-off-summary-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 17px 19px;
+  border: 1px solid var(--line);
+  border-top: 3px solid #a4a9b5;
+  border-radius: 14px;
+  background: white;
+}
+
+.time-off-summary-card span {
+  align-self: end;
+  color: #737b90;
+  font-size: 11px;
+}
+
+.time-off-summary-card strong {
+  grid-row: span 2;
+  color: #30384c;
+  font-size: 25px;
+}
+
+.time-off-summary-card small {
+  overflow: hidden;
+  color: #a0a5b3;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-off-summary-card--pending { border-top-color: #3988df; }
+.time-off-summary-card--approved { border-top-color: #27ae7b; }
+.time-off-summary-card--rejected { border-top-color: #e45e5e; }
+.time-off-summary-card--cancelled { border-top-color: #9da2ae; }
+
+.time-off-period {
+  color: #30384c;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.time-off-approve-button {
+  color: #18966b;
+}
+
 .shift-filter-panel {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.7fr) auto;
@@ -1391,6 +1460,11 @@
 
   .availability-filter-panel,
   .availability-filter-panel:has(.ant-select) {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .time-off-review-filter-panel,
+  .time-off-summary-grid {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 
@@ -1549,7 +1623,9 @@
   .availability-filter-panel:has(.ant-select),
   .availability-summary-grid,
   .my-schedule-filter-panel,
-  .my-schedule-summary-grid {
+  .my-schedule-summary-grid,
+  .time-off-review-filter-panel,
+  .time-off-summary-grid {
     grid-template-columns: 1fr;
   }
 

@@ -15,6 +15,7 @@ import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.AvailabilityType;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.TimeOffStatus;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -23,6 +24,7 @@ import com.smartshift.mapper.ShiftAssignmentMapper;
 import com.smartshift.repository.EmployeeAvailabilityRepository;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.ShiftRequirementRepository;
+import com.smartshift.repository.TimeOffRequestRepository;
 import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.ShiftAssignmentService;
@@ -64,6 +66,7 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final ShiftRequirementRepository shiftRequirementRepository;
     private final EmployeeAvailabilityRepository availabilityRepository;
+    private final TimeOffRequestRepository timeOffRequestRepository;
     private final WorkShiftRepository workShiftRepository;
     private final UserRepository userRepository;
     private final ShiftAssignmentMapper shiftAssignmentMapper;
@@ -140,7 +143,7 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
         WorkShift workShift = findWorkShiftByIdForUpdate(workShiftId);
         validateEditable(workShift);
 
-        User employee = userRepository.findById(request.userId())
+        User employee = userRepository.findByIdForUpdate(request.userId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Không tìm thấy nhân viên có id " + request.userId()
             ));
@@ -225,6 +228,17 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
         List<String> reasons = new ArrayList<>();
         if (alreadyAssigned) {
             reasons.add("Nhân viên đã được phân công vào ca này");
+        }
+
+        if (timeOffRequestRepository.existsOverlappingRequest(
+            user.getId(),
+            List.of(TimeOffStatus.APPROVED),
+            workShift.getStartAt(),
+            workShift.getEndAt()
+        )) {
+            reasons.add(
+                "Nhân viên có đơn nghỉ đã được duyệt trong thời gian của ca"
+            );
         }
 
         AvailabilityType availabilityType = findAvailabilityCoverage(
