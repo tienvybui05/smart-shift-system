@@ -180,7 +180,7 @@ export default function SchedulePublicationModal({
                 : 'Lịch chưa thể công bố'}
               description={publicationCheck.canPublish
                 ? 'Sau khi công bố, nhân viên sẽ thấy đây là lịch chính thức và Admin không thể sửa trực tiếp.'
-                : 'Hãy xử lý toàn bộ ca chưa có nhu cầu hoặc chưa đủ nhân viên tối thiểu.'}
+                : 'Hãy xử lý toàn bộ ca thiếu nhu cầu, thiếu người hoặc có phân công vi phạm ràng buộc.'}
               showIcon
               type={publicationCheck.canPublish ? 'success' : 'warning'}
             />
@@ -190,6 +190,7 @@ export default function SchedulePublicationModal({
               <div><span>Ca đã hủy</span><strong>{publicationCheck.cancelledShifts}</strong></div>
               <div><span>Nhân sự tối thiểu</span><strong>{publicationCheck.totalMinimumEmployees}</strong></div>
               <div><span>Đã phân công</span><strong>{publicationCheck.totalAssignedEmployees}</strong></div>
+              <div><span>Phân công lỗi</span><strong>{publicationCheck.invalidAssignments}</strong></div>
             </div>
 
             {publicationCheck.blockers.map((blocker) => (
@@ -201,7 +202,7 @@ export default function SchedulePublicationModal({
                 columns={issueColumns}
                 dataSource={publicationCheck.shiftIssues}
                 pagination={{ pageSize: 6, showSizeChanger: false }}
-                rowKey={(issue) => `${issue.workShiftId}-${issue.positionId || issue.issueCode}`}
+                rowKey={(issue) => `${issue.workShiftId}-${issue.positionId || 'none'}-${issue.issueCode}`}
                 scroll={{ x: 700 }}
                 size="small"
               />

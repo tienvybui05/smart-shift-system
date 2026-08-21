@@ -40,6 +40,9 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
         Long id
     );
 
+    @Query("SELECT workShift.schedulePeriod.id FROM WorkShift workShift WHERE workShift.id = :id")
+    Optional<Long> findSchedulePeriodIdById(@Param("id") Long id);
+
     List<WorkShift> findAllBySchedulePeriodIdAndShiftTemplateIdAndStatus(
         Long schedulePeriodId,
         Long shiftTemplateId,

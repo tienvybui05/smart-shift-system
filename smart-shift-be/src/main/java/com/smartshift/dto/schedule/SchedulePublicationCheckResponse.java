@@ -14,6 +14,7 @@ public record SchedulePublicationCheckResponse(
     int totalAssignedEmployees,
     int shiftsWithoutRequirements,
     int understaffedShifts,
+    int invalidAssignments,
     boolean canPublish,
     List<String> blockers,
     List<SchedulePublicationIssueResponse> shiftIssues

@@ -1,10 +1,12 @@
 package com.smartshift.service.impl;
 
+import com.smartshift.dto.assignment.AssignmentConstraintResult;
 import com.smartshift.dto.schedule.SchedulePeriodRequest;
 import com.smartshift.dto.schedule.SchedulePeriodResponse;
 import com.smartshift.dto.schedule.SchedulePublicationCheckResponse;
 import com.smartshift.dto.schedule.SchedulePublicationIssueResponse;
 import com.smartshift.entity.Location;
+import com.smartshift.entity.Position;
 import com.smartshift.entity.SchedulePeriod;
 import com.smartshift.entity.ShiftAssignment;
 import com.smartshift.entity.ShiftRequirement;
@@ -23,6 +25,7 @@ import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.ShiftRequirementRepository;
 import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
+import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.SchedulePeriodService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +36,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -51,6 +56,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
     private final ShiftRequirementRepository shiftRequirementRepository;
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final SchedulePeriodMapper schedulePeriodMapper;
+    private final AssignmentConstraintService assignmentConstraintService;
 
     @Override
     public List<SchedulePeriodResponse> getSchedulePeriods(
@@ -96,7 +102,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
         SchedulePeriodRequest request
     ) {
         validateDateRange(request);
-        SchedulePeriod schedulePeriod = findSchedulePeriodById(id);
+        SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(id);
         validateEditable(schedulePeriod);
         Location location = findActiveLocationById(request.locationId());
         validateNoOverlap(location.getId(), request, id);
@@ -165,6 +171,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
         int cancelledShifts = 0;
         int totalMinimumEmployees = 0;
         int totalAssignedEmployees = 0;
+        int invalidAssignments = 0;
 
         for (WorkShift workShift : workShifts) {
             if (workShift.getStatus() == WorkShiftStatus.CANCELLED) {
@@ -183,6 +190,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
             totalAssignedEmployees += assignments.size();
 
             if (requirements.isEmpty()) {
+                invalidAssignments += assignments.size();
                 shiftsWithoutRequirements.add(workShift.getId());
                 issues.add(toPublicationIssue(
                     workShift,
@@ -195,9 +203,73 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
                 continue;
             }
 
+            Map<Long, ShiftRequirement> requirementByPosition = new LinkedHashMap<>();
+            for (ShiftRequirement requirement : requirements) {
+                requirementByPosition.put(
+                    requirement.getPosition().getId(),
+                    requirement
+                );
+            }
+
+            List<ShiftAssignment> validAssignments = new ArrayList<>();
+            Map<Long, List<String>> invalidMessagesByPosition =
+                new LinkedHashMap<>();
+            for (ShiftAssignment assignment : assignments) {
+                Position assignedPosition = assignment.getPosition();
+                ShiftRequirement assignedRequirement = requirementByPosition
+                    .get(assignedPosition.getId());
+                List<String> violations = new ArrayList<>();
+                if (assignedRequirement == null) {
+                    violations.add(
+                        "Vị trí không còn nằm trong nhu cầu của ca"
+                    );
+                }
+
+                AssignmentConstraintResult evaluation =
+                    assignmentConstraintService.evaluate(
+                        assignment.getUser(),
+                        workShift,
+                        assignedPosition
+                    );
+                violations.addAll(evaluation.violations());
+                if (violations.isEmpty()) {
+                    validAssignments.add(assignment);
+                    continue;
+                }
+
+                invalidAssignments++;
+                invalidMessagesByPosition.computeIfAbsent(
+                    assignedPosition.getId(),
+                    ignored -> new ArrayList<>()
+                ).add(
+                    assignment.getUser().getFullName() + ": "
+                        + String.join("; ", violations)
+                );
+            }
+
+            for (Map.Entry<Long, List<String>> entry
+                : invalidMessagesByPosition.entrySet()) {
+                ShiftRequirement requirement = requirementByPosition.get(
+                    entry.getKey()
+                );
+                int validAssigned = (int) validAssignments.stream()
+                    .filter(assignment -> assignment.getPosition().getId()
+                        .equals(entry.getKey()))
+                    .count();
+                issues.add(toPublicationIssue(
+                    workShift,
+                    requirement,
+                    requirement == null ? 0 : requirement.getMinEmployees(),
+                    validAssigned,
+                    "INVALID_ASSIGNMENT",
+                    "Phân công không hợp lệ: "
+                        + String.join(" | ", entry.getValue())
+                ));
+            }
+
             for (ShiftRequirement requirement : requirements) {
                 int minimum = requirement.getMinEmployees();
-                int assigned = (int) assignments.stream()
+                int assigned = (int) validAssignments.stream()
                     .filter(assignment -> assignment.getPosition().getId()
                         .equals(requirement.getPosition().getId()))
                     .count();
@@ -212,6 +284,18 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
                         assigned,
                         "UNDERSTAFFED",
                         "Còn thiếu " + shortage + " nhân viên "
+                            + requirement.getPosition().getName()
+                    ));
+                } else if (assigned > requirement.getMaxEmployees()) {
+                    issues.add(toPublicationIssue(
+                        workShift,
+                        requirement,
+                        requirement.getMaxEmployees(),
+                        assigned,
+                        "OVERSTAFFED",
+                        "Vượt tối đa "
+                            + (assigned - requirement.getMaxEmployees())
+                            + " nhân viên "
                             + requirement.getPosition().getName()
                     ));
                 }
@@ -241,6 +325,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
             totalAssignedEmployees,
             shiftsWithoutRequirements.size(),
             understaffedShifts.size(),
+            invalidAssignments,
             canPublish,
             List.copyOf(blockers),
             List.copyOf(issues)
@@ -284,11 +369,11 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
             return "Không thể công bố lịch: "
                 + publicationCheck.blockers().get(0);
         }
-        return "Không thể công bố lịch: có "
-            + publicationCheck.shiftsWithoutRequirements()
-            + " ca chưa có nhu cầu và "
-            + publicationCheck.understaffedShifts()
-            + " ca chưa đủ nhân viên tối thiểu";
+        return "Không thể công bố lịch: còn "
+            + publicationCheck.shiftIssues().size()
+            + " vấn đề cần xử lý, gồm "
+            + publicationCheck.invalidAssignments()
+            + " phân công vi phạm ràng buộc";
     }
 
     private void validateDateRange(SchedulePeriodRequest request) {

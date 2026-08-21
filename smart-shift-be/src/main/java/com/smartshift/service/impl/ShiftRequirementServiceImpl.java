@@ -15,6 +15,7 @@ import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.ResourceNotFoundException;
 import com.smartshift.mapper.ShiftRequirementMapper;
 import com.smartshift.repository.PositionRepository;
+import com.smartshift.repository.SchedulePeriodRepository;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.ShiftRequirementRepository;
 import com.smartshift.repository.WorkShiftRepository;
@@ -40,6 +41,7 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
 
     private final ShiftRequirementRepository shiftRequirementRepository;
     private final ShiftAssignmentRepository shiftAssignmentRepository;
+    private final SchedulePeriodRepository schedulePeriodRepository;
     private final WorkShiftRepository workShiftRepository;
     private final PositionRepository positionRepository;
     private final ShiftRequirementMapper shiftRequirementMapper;
@@ -61,7 +63,8 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
         Long workShiftId,
         SaveShiftRequirementsRequest request
     ) {
-        WorkShift sourceWorkShift = findWorkShiftById(workShiftId);
+        lockSchedulePeriodForShift(workShiftId);
+        WorkShift sourceWorkShift = findWorkShiftByIdForUpdate(workShiftId);
         validateEditable(sourceWorkShift);
         validateRequest(request.requirements());
 
@@ -293,6 +296,25 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
         return workShiftRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Không tìm thấy ca làm có id " + id
+            ));
+    }
+
+    private WorkShift findWorkShiftByIdForUpdate(Long id) {
+        return workShiftRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy ca làm có id " + id
+            ));
+    }
+
+    private void lockSchedulePeriodForShift(Long workShiftId) {
+        Long schedulePeriodId = workShiftRepository
+            .findSchedulePeriodIdById(workShiftId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy ca làm có id " + workShiftId
+            ));
+        schedulePeriodRepository.findByIdForUpdate(schedulePeriodId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy kỳ xếp lịch có id " + schedulePeriodId
             ));
     }
 

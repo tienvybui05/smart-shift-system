@@ -59,7 +59,7 @@ public class WorkShiftServiceImpl implements WorkShiftService {
     @Override
     @Transactional
     public WorkShiftResponse createWorkShift(WorkShiftRequest request) {
-        SchedulePeriod schedulePeriod = findSchedulePeriodById(
+        SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(
             request.schedulePeriodId()
         );
         validateEditablePeriod(schedulePeriod);
@@ -84,13 +84,14 @@ public class WorkShiftServiceImpl implements WorkShiftService {
         Long id,
         WorkShiftRequest request
     ) {
-        WorkShift workShift = findWorkShiftById(id);
+        SchedulePeriod lockedPeriod = lockSchedulePeriodForShift(id);
+        WorkShift workShift = findWorkShiftByIdForUpdate(id);
         if (!workShift.getSchedulePeriod().getId().equals(request.schedulePeriodId())) {
             throw new BusinessRuleException(
                 "Không thể chuyển ca làm sang một kỳ xếp lịch khác"
             );
         }
-        validateEditablePeriod(workShift.getSchedulePeriod());
+        validateEditablePeriod(lockedPeriod);
         if (workShift.getStatus() != WorkShiftStatus.OPEN) {
             throw new BusinessRuleException(
                 "Chỉ có thể cập nhật ca làm đang mở"
@@ -121,7 +122,7 @@ public class WorkShiftServiceImpl implements WorkShiftService {
     public GenerateWorkShiftsResponse generateWorkShifts(
         GenerateWorkShiftsRequest request
     ) {
-        SchedulePeriod schedulePeriod = findSchedulePeriodById(
+        SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(
             request.schedulePeriodId()
         );
         validateEditablePeriod(schedulePeriod);
@@ -172,8 +173,9 @@ public class WorkShiftServiceImpl implements WorkShiftService {
     @Override
     @Transactional
     public WorkShiftResponse updateStatus(Long id, WorkShiftStatus status) {
-        WorkShift workShift = findWorkShiftById(id);
-        validateEditablePeriod(workShift.getSchedulePeriod());
+        SchedulePeriod lockedPeriod = lockSchedulePeriodForShift(id);
+        WorkShift workShift = findWorkShiftByIdForUpdate(id);
+        validateEditablePeriod(lockedPeriod);
         if (workShift.getStatus() != WorkShiftStatus.OPEN
             && workShift.getStatus() != WorkShiftStatus.CANCELLED) {
             throw new BusinessRuleException(
@@ -296,11 +298,34 @@ public class WorkShiftServiceImpl implements WorkShiftService {
             ));
     }
 
+    private WorkShift findWorkShiftByIdForUpdate(Long id) {
+        return workShiftRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy ca làm có id " + id
+            ));
+    }
+
     private SchedulePeriod findSchedulePeriodById(Long id) {
         return schedulePeriodRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Không tìm thấy kỳ xếp lịch có id " + id
             ));
+    }
+
+    private SchedulePeriod findSchedulePeriodByIdForUpdate(Long id) {
+        return schedulePeriodRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy kỳ xếp lịch có id " + id
+            ));
+    }
+
+    private SchedulePeriod lockSchedulePeriodForShift(Long workShiftId) {
+        Long schedulePeriodId = workShiftRepository
+            .findSchedulePeriodIdById(workShiftId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Không tìm thấy ca làm có id " + workShiftId
+            ));
+        return findSchedulePeriodByIdForUpdate(schedulePeriodId);
     }
 
     private long calculateDurationMinutes(
