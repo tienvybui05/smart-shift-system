@@ -897,6 +897,176 @@
   font-size: 11px;
 }
 
+.auto-schedule-modal .ant-modal-body {
+  max-height: min(74vh, 760px);
+  overflow-y: auto;
+}
+
+.auto-schedule-confirmation,
+.auto-schedule-result {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.auto-schedule-period-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e7e3ff;
+  border-radius: 13px;
+  background: #faf9ff;
+}
+
+.auto-schedule-period-card > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border-right: 1px solid #e7e3ff;
+}
+
+.auto-schedule-period-card > div:last-child {
+  border-right: 0;
+}
+
+.auto-schedule-period-card span,
+.auto-schedule-section-heading span {
+  color: #8a869d;
+  font-size: 10px;
+}
+
+.auto-schedule-period-card strong {
+  overflow: hidden;
+  color: #443c75;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auto-schedule-rule-note {
+  padding: 17px 19px;
+  border: 1px solid #e9ebf2;
+  border-radius: 13px;
+  color: #656d80;
+  background: #fbfbfd;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.auto-schedule-rule-note strong {
+  color: #30384c;
+  font-size: 12px;
+}
+
+.auto-schedule-rule-note ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.auto-schedule-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auto-schedule-summary-grid > div {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 78px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid #e7e3ff;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fcfbff, #f7f5ff);
+}
+
+.auto-schedule-summary-grid span {
+  color: #89859b;
+  font-size: 10px;
+}
+
+.auto-schedule-summary-grid strong {
+  color: #4e4685;
+  font-size: 18px;
+}
+
+.auto-schedule-score-card .ant-progress {
+  margin: 1px 0 0;
+}
+
+.auto-schedule-score-card > strong {
+  position: absolute;
+  top: 13px;
+  right: 15px;
+  font-size: 12px;
+}
+
+.auto-schedule-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auto-schedule-section {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+
+.auto-schedule-section--shortage {
+  border-color: #f1d7d7;
+}
+
+.auto-schedule-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 17px;
+  border-bottom: 1px solid var(--line);
+  background: #fafafd;
+}
+
+.auto-schedule-section--shortage .auto-schedule-section-heading {
+  border-color: #f1d7d7;
+  background: #fffafa;
+}
+
+.auto-schedule-section-heading > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.auto-schedule-section-heading strong {
+  color: #30384c;
+  font-size: 12px;
+}
+
+.auto-schedule-section .ant-table-wrapper {
+  padding: 0 8px 8px;
+}
+
+.auto-schedule-reasons {
+  margin: 0;
+  padding-left: 16px;
+  color: #656d80;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.auto-schedule-staffing-gap {
+  color: #c04444;
+  font-size: 11px;
+}
+
 .generate-shifts-alert {
   margin-bottom: 20px;
 }
@@ -1613,6 +1783,25 @@
 
   .publication-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .auto-schedule-period-card,
+  .auto-schedule-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auto-schedule-period-card > div {
+    border-right: 0;
+    border-bottom: 1px solid #e7e3ff;
+  }
+
+  .auto-schedule-period-card > div:last-child {
+    border-bottom: 0;
+  }
+
+  .auto-schedule-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .assignment-overview > .ant-tag {

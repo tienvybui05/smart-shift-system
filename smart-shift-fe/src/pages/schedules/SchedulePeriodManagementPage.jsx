@@ -5,12 +5,14 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SendOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Popconfirm, Select, Space, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import SchedulePeriodFormDrawer from '../../components/schedules/SchedulePeriodFormDrawer.jsx'
+import AutoScheduleModal from '../../components/schedules/AutoScheduleModal.jsx'
 import SchedulePublicationModal from '../../components/schedules/SchedulePublicationModal.jsx'
 import { getLocations } from '../../services/referenceService.js'
 import {
@@ -50,6 +52,7 @@ export default function SchedulePeriodManagementPage() {
   const [locationRefreshKey, setLocationRefreshKey] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingSchedulePeriod, setEditingSchedulePeriod] = useState(null)
+  const [autoSchedulePeriod, setAutoSchedulePeriod] = useState(null)
   const [publishingSchedulePeriod, setPublishingSchedulePeriod] = useState(null)
   const [lockingId, setLockingId] = useState(null)
 
@@ -133,6 +136,15 @@ export default function SchedulePeriodManagementPage() {
     setRefreshKey((current) => current + 1)
   }
 
+  function handleAutoScheduleGenerated(result) {
+    const created = result.assignmentsCreated
+    messageApi.success(created > 0
+      ? `Đã lưu ${created} phân công tự động.`
+      : 'Lần chạy hoàn tất, không có phân công mới.')
+    setLoading(true)
+    setRefreshKey((current) => current + 1)
+  }
+
   async function handleLock(schedulePeriod) {
     setLockingId(schedulePeriod.id)
     try {
@@ -207,7 +219,7 @@ export default function SchedulePeriodManagementPage() {
       title: 'Thao tác',
       key: 'actions',
       fixed: 'right',
-      width: 180,
+      width: 220,
       align: 'center',
       render: (_, schedulePeriod) => (
         <Space size={2}>
@@ -229,13 +241,22 @@ export default function SchedulePeriodManagementPage() {
             </span>
           </Tooltip>
           {schedulePeriod.status === 'DRAFT' && (
-            <Tooltip title="Kiểm tra và công bố lịch">
-              <Button
-                type="text"
-                icon={<SendOutlined />}
-                onClick={() => setPublishingSchedulePeriod(schedulePeriod)}
-              />
-            </Tooltip>
+            <>
+              <Tooltip title="Tự động xếp lịch">
+                <Button
+                  type="text"
+                  icon={<ThunderboltOutlined />}
+                  onClick={() => setAutoSchedulePeriod(schedulePeriod)}
+                />
+              </Tooltip>
+              <Tooltip title="Kiểm tra và công bố lịch">
+                <Button
+                  type="text"
+                  icon={<SendOutlined />}
+                  onClick={() => setPublishingSchedulePeriod(schedulePeriod)}
+                />
+              </Tooltip>
+            </>
           )}
           {schedulePeriod.status === 'PUBLISHED' && (
             <Popconfirm
@@ -349,6 +370,15 @@ export default function SchedulePeriodManagementPage() {
         onClose={() => setDrawerOpen(false)}
         onSubmit={handleSave}
       />
+
+      {autoSchedulePeriod && (
+        <AutoScheduleModal
+          schedulePeriod={autoSchedulePeriod}
+          onClose={() => setAutoSchedulePeriod(null)}
+          onGenerated={handleAutoScheduleGenerated}
+          onManageShifts={(id) => navigate(`/admin/work-shifts?periodId=${id}`)}
+        />
+      )}
 
       <SchedulePublicationModal
         open={Boolean(publishingSchedulePeriod)}
