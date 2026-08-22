@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AdminOrManagerRoute from './components/AdminOrManagerRoute.jsx'
 import AdminOnlyRoute from './components/AdminOnlyRoute.jsx'
 import AppLoading from './components/AppLoading.jsx'
+import EmployeeOnlyRoute from './components/EmployeeOnlyRoute.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
 import './App.css'
@@ -32,6 +33,12 @@ const MyTimeOffRequestsPage = lazy(
 const TimeOffReviewPage = lazy(
   () => import('./pages/timeoff/TimeOffReviewPage.jsx'),
 )
+const MyOpenShiftsPage = lazy(
+  () => import('./pages/openshifts/MyOpenShiftsPage.jsx'),
+)
+const OpenShiftClaimReviewPage = lazy(
+  () => import('./pages/openshifts/OpenShiftClaimReviewPage.jsx'),
+)
 
 export default function App() {
   return (
@@ -47,8 +54,15 @@ export default function App() {
             <Route path="my-schedule" element={<MyWorkSchedulePage />} />
             <Route path="availability" element={<AvailabilityManagementPage />} />
             <Route path="time-off" element={<MyTimeOffRequestsPage />} />
+            <Route element={<EmployeeOnlyRoute />}>
+              <Route path="open-shifts" element={<MyOpenShiftsPage />} />
+            </Route>
             <Route element={<AdminOrManagerRoute />}>
               <Route path="time-off/review" element={<TimeOffReviewPage />} />
+              <Route
+                path="open-shifts/review"
+                element={<OpenShiftClaimReviewPage />}
+              />
             </Route>
             <Route element={<AdminOnlyRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />

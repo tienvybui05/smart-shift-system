@@ -1,4 +1,5 @@
 import {
+  AuditOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -7,6 +8,7 @@ import {
   LogoutOutlined,
   MenuOutlined,
   NotificationOutlined,
+  PlusCircleOutlined,
   ScheduleOutlined,
   SettingOutlined,
   SwapOutlined,
@@ -54,6 +56,15 @@ function SidebarContent({ role, onNavigate }) {
         >
           <ScheduleOutlined /> Lịch của tôi
         </NavLink>
+        {role === 'ROLE_EMPLOYEE' && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/open-shifts"
+          >
+            <PlusCircleOutlined /> Ca trống
+          </NavLink>
+        )}
         {role === 'ROLE_ADMIN' && (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
@@ -112,6 +123,15 @@ function SidebarContent({ role, onNavigate }) {
             to="/time-off/review"
           >
             <CheckCircleOutlined /> Duyệt nghỉ phép
+          </NavLink>
+        )}
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_MANAGER') && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/open-shifts/review"
+          >
+            <AuditOutlined /> Duyệt nhận ca
           </NavLink>
         )}
         <button className="nav-item" type="button" disabled>

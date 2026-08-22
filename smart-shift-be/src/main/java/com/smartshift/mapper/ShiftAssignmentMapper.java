@@ -54,6 +54,23 @@ public class ShiftAssignmentMapper {
         return assignment;
     }
 
+    public ShiftAssignment toClaimEntity(
+        WorkShift workShift,
+        User employee,
+        User reviewedBy,
+        String note
+    ) {
+        ShiftAssignment assignment = new ShiftAssignment();
+        assignment.setWorkShift(workShift);
+        assignment.setUser(employee);
+        assignment.setPosition(employee.getPosition());
+        assignment.setAssignmentSource(AssignmentSource.CLAIM);
+        assignment.setStatus(AssignmentStatus.ASSIGNED);
+        assignment.setAssignedBy(reviewedBy);
+        assignment.setNote(normalizeNullableText(note));
+        return assignment;
+    }
+
     public ShiftAssignmentResponse toResponse(ShiftAssignment assignment) {
         User employee = assignment.getUser();
         User assignedBy = assignment.getAssignedBy();

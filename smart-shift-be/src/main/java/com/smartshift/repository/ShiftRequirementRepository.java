@@ -2,10 +2,12 @@ package com.smartshift.repository;
 
 import com.smartshift.entity.ShiftRequirement;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ShiftRequirementRepository extends JpaRepository<ShiftRequirement, Long> {
 
@@ -19,5 +21,11 @@ public interface ShiftRequirementRepository extends JpaRepository<ShiftRequireme
         """)
     List<ShiftRequirement> findAllByWorkShiftId(
         @Param("workShiftId") Long workShiftId
+    );
+
+    @EntityGraph(attributePaths = {"position"})
+    Optional<ShiftRequirement> findByWorkShiftIdAndPositionId(
+        Long workShiftId,
+        Long positionId
     );
 }

@@ -1,6 +1,7 @@
 package com.smartshift.repository;
 
 import com.smartshift.entity.WorkShift;
+import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.enums.WorkShiftStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -47,6 +48,29 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
         Long schedulePeriodId,
         Long shiftTemplateId,
         WorkShiftStatus status
+    );
+
+    @Query("""
+        SELECT DISTINCT workShift
+        FROM WorkShift workShift
+        JOIN FETCH workShift.schedulePeriod schedulePeriod
+        JOIN FETCH schedulePeriod.location location
+        LEFT JOIN FETCH workShift.shiftTemplate shiftTemplate
+        JOIN ShiftRequirement requirement
+          ON requirement.workShift = workShift
+        WHERE location.id = :locationId
+          AND requirement.position.id = :positionId
+          AND schedulePeriod.status = :periodStatus
+          AND workShift.status = :shiftStatus
+          AND workShift.startAt > :now
+        ORDER BY workShift.startAt ASC
+        """)
+    List<WorkShift> findClaimableShifts(
+        @Param("locationId") Long locationId,
+        @Param("positionId") Long positionId,
+        @Param("periodStatus") SchedulePeriodStatus periodStatus,
+        @Param("shiftStatus") WorkShiftStatus shiftStatus,
+        @Param("now") Instant now
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -149,6 +149,27 @@ public class SecurityConfig {
                     "/api/shift-assignments/me"
                 ).authenticated()
                 .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/open-shift-claims/available",
+                    "/api/open-shift-claims/me"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/open-shift-claims"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/open-shift-claims/me/*/cancel"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/open-shift-claims"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/open-shift-claims/*/review"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
                     "/api/locations/**",
                     "/api/positions/**",
                     "/api/roles/**",
