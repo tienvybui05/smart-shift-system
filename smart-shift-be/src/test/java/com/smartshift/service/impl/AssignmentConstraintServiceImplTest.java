@@ -3,6 +3,7 @@ package com.smartshift.service.impl;
 import com.smartshift.entity.EmployeeAvailability;
 import com.smartshift.entity.Location;
 import com.smartshift.entity.Position;
+import com.smartshift.entity.Role;
 import com.smartshift.entity.SchedulePeriod;
 import com.smartshift.entity.ShiftAssignment;
 import com.smartshift.entity.User;
@@ -398,6 +399,10 @@ class AssignmentConstraintServiceImplTest {
         user.setId(id);
         user.setEmployeeCode("EMP" + id);
         user.setFullName("Nhân viên " + id);
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("ROLE_EMPLOYEE");
+        user.setRole(role);
         user.setLocation(employeeLocation);
         user.setPosition(employeePosition);
         user.setEmploymentType(EmploymentType.FULL_TIME);

@@ -44,9 +44,32 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByLocationIdAndActiveTrue(Long locationId);
 
     @EntityGraph(attributePaths = {"role", "location", "position"})
-    List<User> findAllByLocationIdAndPositionIdAndActiveTrueOrderByFullNameAsc(
-        Long locationId,
-        Long positionId
+    @Query("""
+        SELECT user
+        FROM User user
+        WHERE user.location.id = :locationId
+          AND user.position.id = :positionId
+          AND user.active = true
+          AND user.role.name = 'ROLE_EMPLOYEE'
+        ORDER BY user.fullName ASC
+        """)
+    List<User> findSchedulableByLocationAndPosition(
+        @Param("locationId") Long locationId,
+        @Param("positionId") Long positionId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"role", "location", "position"})
+    @Query("""
+        SELECT user
+        FROM User user
+        WHERE user.location.id = :locationId
+          AND user.active = true
+          AND user.role.name = 'ROLE_EMPLOYEE'
+        ORDER BY user.id ASC
+        """)
+    List<User> findAllSchedulableByLocationForUpdate(
+        @Param("locationId") Long locationId
     );
 
     @EntityGraph(attributePaths = {"role", "location", "position"})

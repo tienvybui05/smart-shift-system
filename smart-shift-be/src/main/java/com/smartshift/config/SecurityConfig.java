@@ -152,6 +152,7 @@ public class SecurityConfig {
                     "/api/locations/**",
                     "/api/positions/**",
                     "/api/roles/**",
+                    "/api/schedules/**",
                     "/api/schedule-periods/**",
                     "/api/shift-assignments/**",
                     "/api/shift-requirements/**",

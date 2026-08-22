@@ -10,6 +10,7 @@ import com.smartshift.enums.AssignmentSource;
 import com.smartshift.enums.AssignmentStatus;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -30,6 +31,25 @@ public class ShiftAssignmentMapper {
         assignment.setAssignmentSource(AssignmentSource.MANUAL);
         assignment.setStatus(AssignmentStatus.ASSIGNED);
         assignment.setAssignedBy(assignedBy);
+        assignment.setNote(normalizeNullableText(note));
+        return assignment;
+    }
+
+    public ShiftAssignment toAutoEntity(
+        WorkShift workShift,
+        User employee,
+        User generatedBy,
+        BigDecimal score,
+        String note
+    ) {
+        ShiftAssignment assignment = new ShiftAssignment();
+        assignment.setWorkShift(workShift);
+        assignment.setUser(employee);
+        assignment.setPosition(employee.getPosition());
+        assignment.setAssignmentSource(AssignmentSource.AUTO);
+        assignment.setStatus(AssignmentStatus.ASSIGNED);
+        assignment.setScore(score);
+        assignment.setAssignedBy(generatedBy);
         assignment.setNote(normalizeNullableText(note));
         return assignment;
     }

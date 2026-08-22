@@ -88,7 +88,7 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
         Long locationId = workShift.getSchedulePeriod().getLocation().getId();
 
         return userRepository
-            .findAllByLocationIdAndPositionIdAndActiveTrueOrderByFullNameAsc(
+            .findSchedulableByLocationAndPosition(
                 locationId,
                 positionId
             )

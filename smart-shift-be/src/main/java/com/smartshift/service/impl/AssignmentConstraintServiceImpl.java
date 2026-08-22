@@ -41,6 +41,8 @@ import java.util.List;
 public class AssignmentConstraintServiceImpl
     implements AssignmentConstraintService {
 
+    private static final String EMPLOYEE_ROLE = "ROLE_EMPLOYEE";
+
     private static final List<AssignmentStatus> ACTIVE_STATUSES = List.of(
         AssignmentStatus.ASSIGNED,
         AssignmentStatus.CONFIRMED
@@ -156,6 +158,11 @@ public class AssignmentConstraintServiceImpl
     ) {
         if (!employee.isActive()) {
             violations.add("Nhân viên đang ngừng hoạt động");
+        }
+
+        if (employee.getRole() == null
+            || !EMPLOYEE_ROLE.equals(employee.getRole().getName())) {
+            violations.add("Tài khoản không thuộc vai trò nhân viên");
         }
 
         if (!workShift.getSchedulePeriod().getLocation().isActive()) {
