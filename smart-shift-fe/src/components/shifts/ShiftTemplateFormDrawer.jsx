@@ -46,6 +46,7 @@ export default function ShiftTemplateFormDrawer({
   open,
   shiftTemplate,
   locations,
+  locationLocked = false,
   onClose,
   onSubmit,
 }) {
@@ -65,7 +66,7 @@ export default function ShiftTemplateFormDrawer({
     () => locations
       .filter((location) => location.active || location.id === shiftTemplate?.locationId)
       .map((location) => ({
-        label: `${location.code} — ${location.name}${location.active ? '' : ' (Ngừng hoạt động)'}`,
+        label: `${location.code ? `${location.code} — ` : ''}${location.name}${location.active ? '' : ' (Ngừng hoạt động)'}`,
         value: location.id,
         disabled: !location.active,
       })),
@@ -146,6 +147,7 @@ export default function ShiftTemplateFormDrawer({
                 rules={[{ required: true, message: 'Vui lòng chọn chi nhánh' }]}
               >
                 <Select
+                  disabled={locationLocked}
                   showSearch
                   optionFilterProp="label"
                   options={locationOptions}

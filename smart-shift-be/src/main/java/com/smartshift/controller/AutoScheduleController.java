@@ -3,6 +3,7 @@ package com.smartshift.controller;
 import com.smartshift.dto.autoschedule.AutoScheduleRequest;
 import com.smartshift.dto.autoschedule.AutoScheduleResponse;
 import com.smartshift.service.AutoScheduleService;
+import com.smartshift.service.SchedulingAccessService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,12 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AutoScheduleController {
 
     private final AutoScheduleService autoScheduleService;
+    private final SchedulingAccessService schedulingAccessService;
 
     @PostMapping("/generate")
     public ResponseEntity<AutoScheduleResponse> generate(
         @Valid @RequestBody AutoScheduleRequest request,
         Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            request.schedulePeriodId()
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(
             autoScheduleService.generate(request, authentication.getName())
         );

@@ -48,6 +48,7 @@ export default function SchedulePeriodFormDrawer({
   open,
   schedulePeriod,
   locations,
+  locationLocked = false,
   onClose,
   onSubmit,
 }) {
@@ -67,7 +68,7 @@ export default function SchedulePeriodFormDrawer({
     () => locations
       .filter((location) => location.active || location.id === schedulePeriod?.locationId)
       .map((location) => ({
-        label: `${location.code} — ${location.name}${location.active ? '' : ' (Ngừng hoạt động)'}`,
+        label: `${location.code ? `${location.code} — ` : ''}${location.name}${location.active ? '' : ' (Ngừng hoạt động)'}`,
         value: location.id,
         disabled: !location.active,
       })),
@@ -152,6 +153,7 @@ export default function SchedulePeriodFormDrawer({
                 rules={[{ required: true, message: 'Vui lòng chọn chi nhánh' }]}
               >
                 <Select
+                  disabled={locationLocked}
                   showSearch
                   optionFilterProp="label"
                   options={locationOptions}

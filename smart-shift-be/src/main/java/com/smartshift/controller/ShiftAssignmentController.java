@@ -4,6 +4,7 @@ import com.smartshift.dto.assignment.AssignmentCandidateResponse;
 import com.smartshift.dto.assignment.MyWorkScheduleResponse;
 import com.smartshift.dto.assignment.ShiftAssignmentRequest;
 import com.smartshift.dto.assignment.ShiftAssignmentSummaryResponse;
+import com.smartshift.service.SchedulingAccessService;
 import com.smartshift.service.ShiftAssignmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -31,6 +32,7 @@ import java.time.LocalDate;
 public class ShiftAssignmentController {
 
     private final ShiftAssignmentService shiftAssignmentService;
+    private final SchedulingAccessService schedulingAccessService;
 
     @GetMapping("/me")
     public ResponseEntity<List<MyWorkScheduleResponse>> getMySchedule(
@@ -49,8 +51,13 @@ public class ShiftAssignmentController {
 
     @GetMapping("/work-shifts/{workShiftId}")
     public ResponseEntity<ShiftAssignmentSummaryResponse> getSummary(
-        @PathVariable Long workShiftId
+        @PathVariable Long workShiftId,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireWorkShift(
+            authentication.getName(),
+            workShiftId
+        );
         return ResponseEntity.ok(
             shiftAssignmentService.getSummary(workShiftId)
         );
@@ -61,8 +68,13 @@ public class ShiftAssignmentController {
         @PathVariable Long workShiftId,
         @RequestParam
         @Positive(message = "Id vị trí phải lớn hơn 0")
-        Long positionId
+        Long positionId,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireWorkShift(
+            authentication.getName(),
+            workShiftId
+        );
         return ResponseEntity.ok(
             shiftAssignmentService.getCandidates(workShiftId, positionId)
         );
@@ -74,6 +86,10 @@ public class ShiftAssignmentController {
         @Valid @RequestBody ShiftAssignmentRequest request,
         Authentication authentication
     ) {
+        schedulingAccessService.requireWorkShift(
+            authentication.getName(),
+            workShiftId
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(
             shiftAssignmentService.assignEmployee(
                 workShiftId,
@@ -85,8 +101,13 @@ public class ShiftAssignmentController {
 
     @DeleteMapping("/{assignmentId}")
     public ResponseEntity<ShiftAssignmentSummaryResponse> removeAssignment(
-        @PathVariable Long assignmentId
+        @PathVariable Long assignmentId,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireAssignment(
+            authentication.getName(),
+            assignmentId
+        );
         return ResponseEntity.ok(
             shiftAssignmentService.removeAssignment(assignmentId)
         );

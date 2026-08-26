@@ -5,6 +5,7 @@ import com.smartshift.dto.schedule.SchedulePeriodResponse;
 import com.smartshift.dto.schedule.SchedulePublicationCheckResponse;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.service.SchedulePeriodService;
+import com.smartshift.service.SchedulingAccessService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -30,23 +31,32 @@ import java.util.List;
 public class SchedulePeriodController {
 
     private final SchedulePeriodService schedulePeriodService;
+    private final SchedulingAccessService schedulingAccessService;
 
     @GetMapping
     public ResponseEntity<List<SchedulePeriodResponse>> getSchedulePeriods(
         @RequestParam(required = false)
         @Positive(message = "Id chi nhánh phải lớn hơn 0")
         Long locationId,
-        @RequestParam(required = false) SchedulePeriodStatus status
+        @RequestParam(required = false) SchedulePeriodStatus status,
+        Authentication authentication
     ) {
+        Long effectiveLocationId = schedulingAccessService
+            .resolveLocationFilter(authentication.getName(), locationId);
         return ResponseEntity.ok(
-            schedulePeriodService.getSchedulePeriods(locationId, status)
+            schedulePeriodService.getSchedulePeriods(effectiveLocationId, status)
         );
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SchedulePeriodResponse> getSchedulePeriodById(
-        @PathVariable Long id
+        @PathVariable Long id,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            id
+        );
         return ResponseEntity.ok(
             schedulePeriodService.getSchedulePeriodById(id)
         );
@@ -57,6 +67,10 @@ public class SchedulePeriodController {
         @Valid @RequestBody SchedulePeriodRequest request,
         Authentication authentication
     ) {
+        schedulingAccessService.requireLocation(
+            authentication.getName(),
+            request.locationId()
+        );
         SchedulePeriodResponse response = schedulePeriodService
             .createSchedulePeriod(request, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -65,8 +79,17 @@ public class SchedulePeriodController {
     @PutMapping("/{id}")
     public ResponseEntity<SchedulePeriodResponse> updateSchedulePeriod(
         @PathVariable Long id,
-        @Valid @RequestBody SchedulePeriodRequest request
+        @Valid @RequestBody SchedulePeriodRequest request,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            id
+        );
+        schedulingAccessService.requireLocation(
+            authentication.getName(),
+            request.locationId()
+        );
         return ResponseEntity.ok(
             schedulePeriodService.updateSchedulePeriod(id, request)
         );
@@ -74,8 +97,13 @@ public class SchedulePeriodController {
 
     @GetMapping("/{id}/publication-check")
     public ResponseEntity<SchedulePublicationCheckResponse> checkPublication(
-        @PathVariable Long id
+        @PathVariable Long id,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            id
+        );
         return ResponseEntity.ok(
             schedulePeriodService.checkPublication(id)
         );
@@ -86,6 +114,10 @@ public class SchedulePeriodController {
         @PathVariable Long id,
         Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            id
+        );
         return ResponseEntity.ok(
             schedulePeriodService.publishSchedulePeriod(
                 id,
@@ -96,8 +128,13 @@ public class SchedulePeriodController {
 
     @PostMapping("/{id}/lock")
     public ResponseEntity<SchedulePeriodResponse> lockSchedulePeriod(
-        @PathVariable Long id
+        @PathVariable Long id,
+        Authentication authentication
     ) {
+        schedulingAccessService.requireSchedulePeriod(
+            authentication.getName(),
+            id
+        );
         return ResponseEntity.ok(
             schedulePeriodService.lockSchedulePeriod(id)
         );

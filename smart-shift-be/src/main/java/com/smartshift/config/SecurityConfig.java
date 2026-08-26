@@ -170,16 +170,22 @@ public class SecurityConfig {
                     "/api/open-shift-claims/*/review"
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
-                    "/api/locations/**",
-                    "/api/positions/**",
-                    "/api/roles/**",
+                    HttpMethod.GET,
+                    "/api/positions/**"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
                     "/api/schedules/**",
                     "/api/schedule-periods/**",
                     "/api/shift-assignments/**",
                     "/api/shift-requirements/**",
                     "/api/shift-templates/**",
-                    "/api/users/**",
                     "/api/work-shifts/**"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    "/api/locations/**",
+                    "/api/positions/**",
+                    "/api/roles/**",
+                    "/api/users/**"
                 ).hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

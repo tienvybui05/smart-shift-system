@@ -63,9 +63,6 @@ export default function App() {
                 path="open-shifts/review"
                 element={<OpenShiftClaimReviewPage />}
               />
-            </Route>
-            <Route element={<AdminOnlyRoute />}>
-              <Route path="admin/employees" element={<UserManagementPage />} />
               <Route
                 path="admin/shift-templates"
                 element={<ShiftTemplateManagementPage />}
@@ -78,6 +75,9 @@ export default function App() {
                 path="admin/work-shifts"
                 element={<WorkShiftManagementPage />}
               />
+            </Route>
+            <Route element={<AdminOnlyRoute />}>
+              <Route path="admin/employees" element={<UserManagementPage />} />
             </Route>
           </Route>
         </Route>
