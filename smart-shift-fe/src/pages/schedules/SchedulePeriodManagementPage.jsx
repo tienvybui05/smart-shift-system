@@ -14,6 +14,7 @@ import { getApiErrorMessage } from '../../api/apiError.js'
 import SchedulePeriodFormDrawer from '../../components/schedules/SchedulePeriodFormDrawer.jsx'
 import AutoScheduleModal from '../../components/schedules/AutoScheduleModal.jsx'
 import SchedulePublicationModal from '../../components/schedules/SchedulePublicationModal.jsx'
+import useAuth from '../../hooks/useAuth.js'
 import { getLocations } from '../../services/referenceService.js'
 import {
   createSchedulePeriod,
@@ -39,15 +40,31 @@ function formatDate(value) {
   }).format(new Date(`${value}T00:00:00`))
 }
 
+function getManagerLocation(user) {
+  return {
+    id: user.locationId,
+    code: '',
+    name: user.locationName,
+    active: true,
+  }
+}
+
 export default function SchedulePeriodManagementPage() {
+  const { user } = useAuth()
+  const managerScoped = user.role === 'ROLE_MANAGER'
   const navigate = useNavigate()
   const [messageApi, messageContext] = message.useMessage()
   const [schedulePeriods, setSchedulePeriods] = useState([])
-  const [locations, setLocations] = useState([])
-  const [locationsLoading, setLocationsLoading] = useState(true)
+  const [locations, setLocations] = useState(() => (
+    managerScoped ? [getManagerLocation(user)] : []
+  ))
+  const [locationsLoading, setLocationsLoading] = useState(!managerScoped)
   const [locationError, setLocationError] = useState('')
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ locationId: undefined, status: undefined })
+  const [filters, setFilters] = useState({
+    locationId: managerScoped ? user.locationId : undefined,
+    status: undefined,
+  })
   const [refreshKey, setRefreshKey] = useState(0)
   const [locationRefreshKey, setLocationRefreshKey] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -57,6 +74,8 @@ export default function SchedulePeriodManagementPage() {
   const [lockingId, setLockingId] = useState(null)
 
   useEffect(() => {
+    if (managerScoped) return undefined
+
     let mounted = true
     getLocations()
       .then((result) => {
@@ -74,7 +93,7 @@ export default function SchedulePeriodManagementPage() {
     return () => {
       mounted = false
     }
-  }, [locationRefreshKey])
+  }, [locationRefreshKey, managerScoped])
 
   useEffect(() => {
     let mounted = true
@@ -104,7 +123,10 @@ export default function SchedulePeriodManagementPage() {
 
   function resetFilters() {
     setLoading(true)
-    setFilters({ locationId: undefined, status: undefined })
+    setFilters({
+      locationId: managerScoped ? user.locationId : undefined,
+      status: undefined,
+    })
   }
 
   function openCreateDrawer() {
@@ -310,11 +332,14 @@ export default function SchedulePeriodManagementPage() {
 
       <section className="management-card shift-filter-panel">
         <Select
-          allowClear
+          allowClear={!managerScoped}
+          disabled={managerScoped}
           loading={locationsLoading}
           onChange={(value) => applyFilter('locationId', value)}
           options={locations.map((location) => ({
-            label: `${location.code} — ${location.name}`,
+            label: location.code
+              ? `${location.code} — ${location.name}`
+              : location.name,
             value: location.id,
           }))}
           placeholder="Tất cả chi nhánh"
@@ -367,6 +392,7 @@ export default function SchedulePeriodManagementPage() {
         open={drawerOpen}
         schedulePeriod={editingSchedulePeriod}
         locations={locations}
+        locationLocked={managerScoped}
         onClose={() => setDrawerOpen(false)}
         onSubmit={handleSave}
       />
