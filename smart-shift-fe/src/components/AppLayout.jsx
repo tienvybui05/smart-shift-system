@@ -146,9 +146,13 @@ function SidebarContent({ role, onNavigate }) {
             <ClockCircleOutlined /> Chấm công
           </NavLink>
         ) : (
-          <button className="nav-item" type="button" disabled>
-            <ClockCircleOutlined /> Chấm công
-          </button>
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/attendance/manage"
+          >
+            <ClockCircleOutlined /> Quản lý chấm công
+          </NavLink>
         )}
 
         <span className="nav-section-label">Hệ thống</span>

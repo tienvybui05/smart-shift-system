@@ -1589,6 +1589,63 @@
   color: #8c92a2;
 }
 
+.attendance-management-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.8fr) minmax(145px, 0.8fr) minmax(200px, 1.2fr) minmax(150px, 0.9fr) auto auto;
+  gap: 10px;
+  padding: 18px;
+}
+
+.attendance-management-filter-panel .ant-input,
+.attendance-management-filter-panel .ant-select-selector,
+.attendance-management-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.attendance-management-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.attendance-approval-employee {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.attendance-approval-employee > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid #ececf3;
+  border-radius: 12px;
+  background: #fafaff;
+}
+
+.attendance-approval-employee span {
+  color: #858c9e;
+  font-size: 10px;
+}
+
+.attendance-approval-employee strong {
+  color: #343a4b;
+  font-size: 12px;
+}
+
+.attendance-approval-alert {
+  margin-bottom: 18px;
+}
+
+.attendance-approval-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .availability-help-alert {
   margin-bottom: 24px;
 }
@@ -1880,6 +1937,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .attendance-management-filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-management-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .attendance-history-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -1914,6 +1979,10 @@
   }
 
   .attendance-summary-grid,
+  .attendance-management-filter-panel,
+  .attendance-management-summary-grid,
+  .attendance-approval-employee,
+  .attendance-approval-time-grid,
   .attendance-history-filter {
     grid-template-columns: 1fr;
   }
