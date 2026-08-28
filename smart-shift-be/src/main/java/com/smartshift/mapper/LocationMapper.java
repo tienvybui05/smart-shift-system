@@ -19,6 +19,13 @@ public class LocationMapper {
         location.setName(request.name().trim());
         location.setAddress(normalizeNullableText(request.address()));
         location.setTimezone(request.timezone().trim());
+        location.setLatitude(request.latitude());
+        location.setLongitude(request.longitude());
+        if (request.attendanceRadiusMeters() != null) {
+            location.setAttendanceRadiusMeters(
+                request.attendanceRadiusMeters()
+            );
+        }
         location.setActive(request.active());
     }
 
@@ -29,6 +36,9 @@ public class LocationMapper {
             location.getName(),
             location.getAddress(),
             location.getTimezone(),
+            location.getLatitude(),
+            location.getLongitude(),
+            location.getAttendanceRadiusMeters(),
             location.isActive(),
             location.getCreatedAt(),
             location.getUpdatedAt()
@@ -42,4 +52,3 @@ public class LocationMapper {
         return value.trim();
     }
 }
-

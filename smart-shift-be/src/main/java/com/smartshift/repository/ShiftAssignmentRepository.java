@@ -3,6 +3,7 @@ package com.smartshift.repository;
 import com.smartshift.entity.ShiftAssignment;
 import com.smartshift.enums.AssignmentStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -40,6 +41,12 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
     Optional<Long> findWorkShiftIdByAssignmentId(@Param("id") Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {
+        "user",
+        "workShift",
+        "workShift.schedulePeriod",
+        "workShift.schedulePeriod.location"
+    })
     @Query("SELECT assignment FROM ShiftAssignment assignment WHERE assignment.id = :id")
     Optional<ShiftAssignment> findByIdForUpdate(@Param("id") Long id);
 

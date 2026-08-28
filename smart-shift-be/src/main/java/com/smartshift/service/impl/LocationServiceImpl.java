@@ -3,6 +3,7 @@ package com.smartshift.service.impl;
 import com.smartshift.dto.location.LocationRequest;
 import com.smartshift.dto.location.LocationResponse;
 import com.smartshift.entity.Location;
+import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
 import com.smartshift.exception.ResourceNotFoundException;
 import com.smartshift.mapper.LocationMapper;
@@ -39,6 +40,7 @@ public class LocationServiceImpl implements LocationService {
     @Override
     @Transactional
     public LocationResponse createLocation(LocationRequest request) {
+        validateAttendanceCoordinates(request);
         String normalizedCode = request.code().trim();
 
         if (locationRepository.existsByCode(normalizedCode)) {
@@ -55,6 +57,7 @@ public class LocationServiceImpl implements LocationService {
     @Override
     @Transactional
     public LocationResponse updateLocation(Long id, LocationRequest request) {
+        validateAttendanceCoordinates(request);
         Location location = findLocationById(id);
         String normalizedCode = request.code().trim();
 
@@ -76,5 +79,14 @@ public class LocationServiceImpl implements LocationService {
                 "Không tìm thấy chi nhánh có id " + id
             ));
     }
-}
 
+    private void validateAttendanceCoordinates(LocationRequest request) {
+        boolean hasLatitude = request.latitude() != null;
+        boolean hasLongitude = request.longitude() != null;
+        if (hasLatitude != hasLongitude) {
+            throw new BusinessRuleException(
+                "Phải khai báo đồng thời vĩ độ và kinh độ chi nhánh"
+            );
+        }
+    }
+}
