@@ -16,6 +16,11 @@ server:
   port: 8080
 
 app:
+  attendance:
+    absence-reconciliation:
+      enabled: ${ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED:true}
+      initial-delay-ms: ${ATTENDANCE_ABSENCE_RECONCILIATION_INITIAL_DELAY_MS:10000}
+      fixed-delay-ms: ${ATTENDANCE_ABSENCE_RECONCILIATION_FIXED_DELAY_MS:900000}
   security:
     jwt:
       secret: ${JWT_SECRET:smart-shift-development-jwt-secret-change-me-2026}
