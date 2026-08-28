@@ -1369,6 +1369,226 @@
   text-transform: capitalize;
 }
 
+.attendance-today-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.attendance-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.attendance-section-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attendance-section-heading strong {
+  color: #30384c;
+  font-size: 16px;
+}
+
+.attendance-section-heading span {
+  color: #858c9e;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.attendance-gps-reading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #28805d !important;
+  background: #eaf8f1;
+  font-weight: 650;
+  text-transform: none !important;
+}
+
+.attendance-shift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attendance-shift-card {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  align-items: center;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(190px, 1fr) minmax(190px, 1fr) auto;
+  gap: 22px;
+  padding: 20px 22px 20px 27px;
+}
+
+.attendance-shift-color {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+}
+
+.attendance-shift-main,
+.attendance-shift-location,
+.attendance-shift-status {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.attendance-shift-main > strong,
+.attendance-shift-location strong {
+  overflow: hidden;
+  color: #30384c;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-shift-main > span:last-child,
+.attendance-shift-location span,
+.attendance-shift-status small {
+  color: #858c9e;
+  font-size: 11px;
+}
+
+.attendance-shift-date {
+  color: #5b4cf0;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.attendance-shift-location {
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.attendance-shift-location > .anticon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  color: #5b4cf0;
+  background: #efedff;
+}
+
+.attendance-shift-location > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attendance-shift-status {
+  align-items: flex-start;
+}
+
+.attendance-shift-status .ant-tag {
+  margin: 0;
+}
+
+.attendance-empty-card {
+  padding: 22px;
+}
+
+.attendance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.attendance-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 17px 18px;
+}
+
+.attendance-summary-card > .anticon {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  color: #5b4cf0;
+  background: #efedff;
+  font-size: 16px;
+}
+
+.attendance-summary-card--warning > .anticon {
+  color: #c77816;
+  background: #fff3df;
+}
+
+.attendance-summary-card > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attendance-summary-card span {
+  color: #8c92a2;
+  font-size: 10px;
+}
+
+.attendance-summary-card strong {
+  overflow: hidden;
+  color: #343a4b;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-history-card {
+  overflow: hidden;
+}
+
+.attendance-history-heading > div:first-child {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attendance-history-heading > div:first-child span {
+  color: #858c9e;
+  font-size: 10px;
+}
+
+.attendance-history-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(145px, 1fr)) auto;
+  gap: 9px;
+}
+
+.attendance-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: #596174;
+  font-size: 11px;
+}
+
+.attendance-time-cell .anticon {
+  width: 14px;
+  color: #8c92a2;
+}
+
 .availability-help-alert {
   margin-bottom: 24px;
 }
@@ -1652,12 +1872,52 @@
 }
 
 @media (max-width: 1050px) {
+  .attendance-shift-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-history-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance-history-filter {
+    width: 100%;
+  }
+
   .open-shift-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 560px) {
+  .attendance-section-heading,
+  .attendance-shift-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-section-heading {
+    flex-direction: column;
+  }
+
+  .attendance-gps-reading {
+    width: fit-content;
+  }
+
+  .attendance-shift-card > .ant-btn {
+    width: 100%;
+  }
+
+  .attendance-summary-grid,
+  .attendance-history-filter {
+    grid-template-columns: 1fr;
+  }
+
   .open-shift-summary-grid,
   .open-shift-detail-grid {
     grid-template-columns: 1fr;

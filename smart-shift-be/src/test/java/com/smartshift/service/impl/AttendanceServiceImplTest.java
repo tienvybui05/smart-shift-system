@@ -151,7 +151,7 @@ class AttendanceServiceImplTest {
             () -> attendanceService.checkIn("employee", gpsRequest(
                 LOCATION_LATITUDE,
                 LOCATION_LONGITUDE,
-                "101.00"
+                "201.00"
             ))
         );
     }

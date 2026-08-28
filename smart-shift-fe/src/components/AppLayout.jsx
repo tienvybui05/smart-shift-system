@@ -137,9 +137,19 @@ function SidebarContent({ role, onNavigate }) {
         <button className="nav-item" type="button" disabled>
           <SwapOutlined /> Đổi ca
         </button>
-        <button className="nav-item" type="button" disabled>
-          <ClockCircleOutlined /> Chấm công
-        </button>
+        {role === 'ROLE_EMPLOYEE' ? (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/attendance"
+          >
+            <ClockCircleOutlined /> Chấm công
+          </NavLink>
+        ) : (
+          <button className="nav-item" type="button" disabled>
+            <ClockCircleOutlined /> Chấm công
+          </button>
+        )}
 
         <span className="nav-section-label">Hệ thống</span>
         <button className="nav-item" type="button" disabled>

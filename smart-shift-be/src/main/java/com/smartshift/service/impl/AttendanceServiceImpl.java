@@ -46,7 +46,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private static final Duration LATE_TOLERANCE = Duration.ofMinutes(5);
     private static final Duration EARLY_LEAVE_TOLERANCE = Duration.ofMinutes(5);
     private static final BigDecimal MAX_GPS_ACCURACY_METERS =
-        new BigDecimal("100.00");
+        new BigDecimal("200.00");
     private static final int MAX_HISTORY_DAYS = 93;
     private static final double EARTH_RADIUS_METERS = 6_371_000.0;
 
