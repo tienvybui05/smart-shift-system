@@ -1,6 +1,7 @@
 package com.smartshift.repository;
 
 import com.smartshift.entity.ShiftAssignment;
+import com.smartshift.entity.User;
 import com.smartshift.enums.AssignmentStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -88,6 +89,18 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
         @Param("statuses") Collection<AssignmentStatus> statuses,
         @Param("rangeStart") Instant rangeStart,
         @Param("rangeEnd") Instant rangeEnd
+    );
+
+    @Query("""
+        SELECT DISTINCT assignment.user
+        FROM ShiftAssignment assignment
+        WHERE assignment.workShift.schedulePeriod.id = :schedulePeriodId
+          AND assignment.status IN :statuses
+        ORDER BY assignment.user.id ASC
+        """)
+    List<User> findDistinctAssignedUsersBySchedulePeriodId(
+        @Param("schedulePeriodId") Long schedulePeriodId,
+        @Param("statuses") Collection<AssignmentStatus> statuses
     );
 
     long countByWorkShiftIdAndPositionIdAndStatusIn(

@@ -6,6 +6,8 @@ import com.smartshift.dto.timeoff.TimeOffReviewRequest;
 import com.smartshift.entity.ShiftAssignment;
 import com.smartshift.entity.User;
 import com.smartshift.enums.AssignmentStatus;
+import com.smartshift.enums.NotificationReferenceType;
+import com.smartshift.enums.NotificationType;
 import com.smartshift.enums.TimeOffStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -15,6 +17,7 @@ import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.TimeOffRequestRepository;
 import com.smartshift.repository.UserRepository;
 import com.smartshift.service.TimeOffService;
+import com.smartshift.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +43,7 @@ public class TimeOffServiceImpl implements TimeOffService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final UserRepository userRepository;
     private final TimeOffMapper timeOffMapper;
+    private final NotificationService notificationService;
 
     @Override
     public List<TimeOffResponse> getMyRequests(String username) {
@@ -65,6 +69,7 @@ public class TimeOffServiceImpl implements TimeOffService {
             timeOffRequestRepository.save(
                 timeOffMapper.toEntity(request, user)
             );
+        notifyReviewersOfNewRequest(savedRequest);
         return timeOffMapper.toResponse(savedRequest);
     }
 
@@ -144,8 +149,46 @@ public class TimeOffServiceImpl implements TimeOffService {
         request.setStatus(reviewRequest.status());
         request.setApprovedBy(reviewer);
         request.setApprovedAt(Instant.now());
-        return timeOffMapper.toResponse(
-            timeOffRequestRepository.save(request)
+        com.smartshift.entity.TimeOffRequest savedRequest =
+            timeOffRequestRepository.save(request);
+        notifyEmployeeOfReviewResult(savedRequest);
+        return timeOffMapper.toResponse(savedRequest);
+    }
+
+    private void notifyReviewersOfNewRequest(
+        com.smartshift.entity.TimeOffRequest request
+    ) {
+        List<User> reviewers = userRepository
+            .findActiveNotificationReviewersForLocation(
+                request.getUser().getLocation().getId()
+            );
+        notificationService.createNotifications(
+            reviewers,
+            NotificationType.TIME_OFF_REQUEST_CREATED,
+            "Có đơn xin nghỉ mới",
+            request.getUser().getFullName()
+                + " vừa gửi đơn xin nghỉ #" + request.getId() + ".",
+            NotificationReferenceType.TIME_OFF_REQUEST,
+            request.getId()
+        );
+    }
+
+    private void notifyEmployeeOfReviewResult(
+        com.smartshift.entity.TimeOffRequest request
+    ) {
+        boolean approved = request.getStatus() == TimeOffStatus.APPROVED;
+        notificationService.createNotification(
+            request.getUser(),
+            approved
+                ? NotificationType.TIME_OFF_REQUEST_APPROVED
+                : NotificationType.TIME_OFF_REQUEST_REJECTED,
+            approved
+                ? "Đơn xin nghỉ đã được duyệt"
+                : "Đơn xin nghỉ đã bị từ chối",
+            "Đơn xin nghỉ #" + request.getId() + " của bạn "
+                + (approved ? "đã được duyệt." : "đã bị từ chối."),
+            NotificationReferenceType.TIME_OFF_REQUEST,
+            request.getId()
         );
     }
 

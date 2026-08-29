@@ -19,6 +19,7 @@ import { Avatar, Button, Drawer, Dropdown } from 'antd'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth.js'
+import NotificationCenter from './notifications/NotificationCenter.jsx'
 
 const ROLE_LABELS = {
   ROLE_ADMIN: 'Quản trị viên',
@@ -156,6 +157,13 @@ function SidebarContent({ role, onNavigate }) {
         )}
 
         <span className="nav-section-label">Hệ thống</span>
+        <NavLink
+          className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+          onClick={onNavigate}
+          to="/notifications"
+        >
+          <NotificationOutlined /> Thông báo
+        </NavLink>
         <button className="nav-item" type="button" disabled>
           <SettingOutlined /> Thiết lập
         </button>
@@ -237,12 +245,7 @@ export default function AppLayout() {
           </div>
 
           <div className="header-actions">
-            <Button
-              className="notification-button"
-              type="text"
-              icon={<NotificationOutlined />}
-              aria-label="Thông báo"
-            />
+            <NotificationCenter />
             <Dropdown menu={accountMenu} trigger={['click']} placement="bottomRight">
               <button className="account-button" type="button">
                 <Avatar size={38} icon={<UserOutlined />} />

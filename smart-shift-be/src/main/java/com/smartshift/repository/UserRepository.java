@@ -43,6 +43,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByLocationIdAndActiveTrue(Long locationId);
 
+    @EntityGraph(attributePaths = {"role", "location"})
+    @Query("""
+        SELECT user
+        FROM User user
+        WHERE user.active = true
+          AND (
+              user.role.name = 'ROLE_ADMIN'
+              OR (
+                  user.role.name = 'ROLE_MANAGER'
+                  AND user.location.id = :locationId
+              )
+          )
+        ORDER BY user.id ASC
+        """)
+    List<User> findActiveNotificationReviewersForLocation(
+        @Param("locationId") Long locationId
+    );
+
     @EntityGraph(attributePaths = {"role", "location", "position"})
     @Query("""
         SELECT user

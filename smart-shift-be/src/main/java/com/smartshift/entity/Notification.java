@@ -1,7 +1,11 @@
 package com.smartshift.entity;
 
+import com.smartshift.enums.NotificationReferenceType;
+import com.smartshift.enums.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,8 +35,9 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
-    private String type;
+    private NotificationType type;
 
     @Column(name = "title", nullable = false, length = 150)
     private String title;
@@ -40,8 +45,9 @@ public class Notification {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reference_type", length = 50)
-    private String referenceType;
+    private NotificationReferenceType referenceType;
 
     @Column(name = "reference_id")
     private Long referenceId;
@@ -59,4 +65,3 @@ public class Notification {
         }
     }
 }
-

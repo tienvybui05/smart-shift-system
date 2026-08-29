@@ -16,6 +16,9 @@ server:
   port: 8080
 
 app:
+  notifications:
+    sse:
+      heartbeat-ms: ${NOTIFICATION_SSE_HEARTBEAT_MS:25000}
   attendance:
     absence-reconciliation:
       enabled: ${ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED:true}

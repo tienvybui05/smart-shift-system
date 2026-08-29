@@ -19,6 +19,7 @@ import com.smartshift.repository.ShiftRequirementRepository;
 import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
+import com.smartshift.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +65,9 @@ class SchedulePublicationConstraintTest {
     @Mock
     private AssignmentConstraintService assignmentConstraintService;
 
+    @Mock
+    private NotificationService notificationService;
+
     private SchedulePeriodServiceImpl schedulePeriodService;
     private SchedulePeriod schedulePeriod;
     private WorkShift workShift;
@@ -82,7 +86,8 @@ class SchedulePublicationConstraintTest {
             shiftRequirementRepository,
             shiftAssignmentRepository,
             schedulePeriodMapper,
-            assignmentConstraintService
+            assignmentConstraintService,
+            notificationService
         );
 
         Location location = new Location();

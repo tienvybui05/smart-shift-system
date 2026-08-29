@@ -15,6 +15,7 @@ import com.smartshift.mapper.TimeOffMapper;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.TimeOffRequestRepository;
 import com.smartshift.repository.UserRepository;
+import com.smartshift.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,9 @@ class TimeOffServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private TimeOffServiceImpl timeOffService;
     private Location primaryLocation;
     private Location secondaryLocation;
@@ -57,7 +61,8 @@ class TimeOffServiceImplTest {
             timeOffRequestRepository,
             shiftAssignmentRepository,
             userRepository,
-            new TimeOffMapper()
+            new TimeOffMapper(),
+            notificationService
         );
 
         primaryLocation = location(1L, "Chi nhánh 1");

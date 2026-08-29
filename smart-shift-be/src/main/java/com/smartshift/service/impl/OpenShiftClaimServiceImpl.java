@@ -12,6 +12,8 @@ import com.smartshift.entity.ShiftRequirement;
 import com.smartshift.entity.User;
 import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
+import com.smartshift.enums.NotificationReferenceType;
+import com.smartshift.enums.NotificationType;
 import com.smartshift.enums.OpenShiftClaimStatus;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.enums.WorkShiftStatus;
@@ -28,6 +30,7 @@ import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.OpenShiftClaimService;
+import com.smartshift.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +66,7 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
     private final OpenShiftClaimMapper openShiftClaimMapper;
     private final ShiftAssignmentMapper shiftAssignmentMapper;
     private final AssignmentConstraintService assignmentConstraintService;
+    private final NotificationService notificationService;
 
     @Override
     public List<AvailableOpenShiftResponse> getAvailableShifts(
@@ -151,6 +155,7 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
                 request.reason()
             )
         );
+        notifyReviewersOfNewClaim(saved);
         return openShiftClaimMapper.toResponse(saved);
     }
 
@@ -226,12 +231,14 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
 
         if (request.status() == OpenShiftClaimStatus.REJECTED) {
             markReviewed(claim, reviewer, request);
-            return openShiftClaimMapper.toResponse(
-                openShiftClaimRepository.saveAndFlush(claim)
-            );
+            OpenShiftClaim savedClaim = openShiftClaimRepository
+                .saveAndFlush(claim);
+            notifyEmployeeOfClaimResult(savedClaim);
+            return openShiftClaimMapper.toResponse(savedClaim);
         }
 
         approveClaim(claim, reviewer, request);
+        notifyEmployeeOfClaimResult(claim);
         return openShiftClaimMapper.toResponse(claim);
     }
 
@@ -385,6 +392,43 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
         }
         openShiftClaimRepository.saveAll(remainingClaims);
         openShiftClaimRepository.flush();
+        for (OpenShiftClaim remainingClaim : remainingClaims) {
+            notifyEmployeeOfClaimResult(remainingClaim);
+        }
+    }
+
+    private void notifyReviewersOfNewClaim(OpenShiftClaim claim) {
+        List<User> reviewers = userRepository
+            .findActiveNotificationReviewersForLocation(
+                claim.getUser().getLocation().getId()
+            );
+        notificationService.createNotifications(
+            reviewers,
+            NotificationType.OPEN_SHIFT_CLAIM_CREATED,
+            "Có yêu cầu nhận ca mới",
+            claim.getUser().getFullName()
+                + " vừa gửi yêu cầu nhận ca #" + claim.getId() + ".",
+            NotificationReferenceType.OPEN_SHIFT_CLAIM,
+            claim.getId()
+        );
+    }
+
+    private void notifyEmployeeOfClaimResult(OpenShiftClaim claim) {
+        boolean approved = claim.getStatus()
+            == OpenShiftClaimStatus.APPROVED;
+        notificationService.createNotification(
+            claim.getUser(),
+            approved
+                ? NotificationType.OPEN_SHIFT_CLAIM_APPROVED
+                : NotificationType.OPEN_SHIFT_CLAIM_REJECTED,
+            approved
+                ? "Yêu cầu nhận ca đã được duyệt"
+                : "Yêu cầu nhận ca đã bị từ chối",
+            "Yêu cầu nhận ca #" + claim.getId() + " của bạn "
+                + (approved ? "đã được duyệt." : "đã bị từ chối."),
+            NotificationReferenceType.OPEN_SHIFT_CLAIM,
+            claim.getId()
+        );
     }
 
     private void validateClaimableShift(WorkShift workShift) {

@@ -13,6 +13,8 @@ import com.smartshift.entity.ShiftRequirement;
 import com.smartshift.entity.User;
 import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
+import com.smartshift.enums.NotificationReferenceType;
+import com.smartshift.enums.NotificationType;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
@@ -27,6 +29,7 @@ import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.SchedulePeriodService;
+import com.smartshift.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final SchedulePeriodMapper schedulePeriodMapper;
     private final AssignmentConstraintService assignmentConstraintService;
+    private final NotificationService notificationService;
 
     @Override
     public List<SchedulePeriodResponse> getSchedulePeriods(
@@ -137,8 +141,29 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
         schedulePeriod.setStatus(SchedulePeriodStatus.PUBLISHED);
         schedulePeriod.setPublishedBy(publishedBy);
         schedulePeriod.setPublishedAt(Instant.now());
-        return schedulePeriodMapper.toResponse(
-            schedulePeriodRepository.save(schedulePeriod)
+        SchedulePeriod savedPeriod = schedulePeriodRepository.save(
+            schedulePeriod
+        );
+        notifyAssignedEmployeesOfPublication(savedPeriod);
+        return schedulePeriodMapper.toResponse(savedPeriod);
+    }
+
+    private void notifyAssignedEmployeesOfPublication(
+        SchedulePeriod schedulePeriod
+    ) {
+        List<User> assignedEmployees = shiftAssignmentRepository
+            .findDistinctAssignedUsersBySchedulePeriodId(
+                schedulePeriod.getId(),
+                ACTIVE_ASSIGNMENT_STATUSES
+            );
+        notificationService.createNotifications(
+            assignedEmployees,
+            NotificationType.SCHEDULE_PUBLISHED,
+            "Lịch làm việc mới đã được công bố",
+            "Lịch " + schedulePeriod.getName()
+                + " đã được công bố. Hãy kiểm tra lịch làm việc của bạn.",
+            NotificationReferenceType.SCHEDULE_PERIOD,
+            schedulePeriod.getId()
         );
     }
 
