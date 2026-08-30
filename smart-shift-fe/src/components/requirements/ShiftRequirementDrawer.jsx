@@ -5,6 +5,7 @@ import {
   Drawer,
   Empty,
   Form,
+  Input,
   InputNumber,
   Row,
   Select,
@@ -34,6 +35,7 @@ function normalizeTime(value) {
 function toFormValues(summary) {
   return {
     applyToSameTemplate: false,
+    changeReason: '',
     requirements: summary.requirements.map((requirement) => ({
       positionId: requirement.positionId,
       minEmployees: Number(requirement.minEmployees),
@@ -126,6 +128,7 @@ export default function ShiftRequirementDrawer({
       await onSubmit({
         applyToSameTemplate: Boolean(values.applyToSameTemplate),
         requirements: rows,
+        changeReason: values.changeReason?.trim() || null,
       })
       form.resetFields()
       setLoading(true)
@@ -305,6 +308,23 @@ export default function ShiftRequirementDrawer({
                 <Switch
                   checkedChildren="Tất cả ca cùng mẫu"
                   unCheckedChildren="Chỉ ca này"
+                />
+              </Form.Item>
+            )}
+            {editable && (
+              <Form.Item
+                label="Lý do thay đổi nhu cầu"
+                name="changeReason"
+                rules={[
+                  { required: true, whitespace: true, message: 'Vui lòng nhập lý do thay đổi' },
+                  { max: 500, message: 'Lý do không được vượt quá 500 ký tự' },
+                ]}
+              >
+                <Input.TextArea
+                  maxLength={500}
+                  placeholder="Ví dụ: Tăng nhân sự theo lượng khách dự kiến"
+                  rows={3}
+                  showCount
                 />
               </Form.Item>
             )}

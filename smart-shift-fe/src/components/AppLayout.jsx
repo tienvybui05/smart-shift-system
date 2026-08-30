@@ -6,6 +6,7 @@ import {
   DownOutlined,
   DollarOutlined,
   FileTextOutlined,
+  HistoryOutlined,
   LogoutOutlined,
   MenuOutlined,
   NotificationOutlined,
@@ -171,6 +172,15 @@ function SidebarContent({ role, onNavigate }) {
             to="/payroll/manage"
           >
             <DollarOutlined /> Tính công và lương
+          </NavLink>
+        )}
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_MANAGER') && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/schedule-audits"
+          >
+            <HistoryOutlined /> Lịch sử thay đổi
           </NavLink>
         )}
 

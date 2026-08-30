@@ -54,7 +54,11 @@ public class ShiftRequirementController {
             workShiftId
         );
         return ResponseEntity.ok(
-            shiftRequirementService.saveRequirements(workShiftId, request)
+            shiftRequirementService.saveRequirements(
+                workShiftId,
+                request,
+                authentication.getName()
+            )
         );
     }
 }

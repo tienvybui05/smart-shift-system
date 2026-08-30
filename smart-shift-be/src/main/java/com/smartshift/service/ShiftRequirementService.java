@@ -9,6 +9,7 @@ public interface ShiftRequirementService {
 
     ShiftRequirementSummaryResponse saveRequirements(
         Long workShiftId,
-        SaveShiftRequirementsRequest request
+        SaveShiftRequirementsRequest request,
+        String currentUsername
     );
 }

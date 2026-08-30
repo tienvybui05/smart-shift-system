@@ -33,6 +33,9 @@ public record WorkShiftRequest(
     Short breakMinutes,
 
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự")
-    String note
+    String note,
+
+    @Size(max = 500, message = "Lý do thay đổi không được vượt quá 500 ký tự")
+    String changeReason
 ) {
 }

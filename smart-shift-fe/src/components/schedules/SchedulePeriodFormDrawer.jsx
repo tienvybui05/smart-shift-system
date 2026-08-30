@@ -32,6 +32,7 @@ function getDefaultValues(locations) {
     name: `Lịch tuần ${formatShortDate(startValue)} – ${formatShortDate(endValue)}`,
     startDate: startValue,
     endDate: endValue,
+    changeReason: '',
   }
 }
 
@@ -41,6 +42,7 @@ function getEditValues(schedulePeriod) {
     name: schedulePeriod.name,
     startDate: schedulePeriod.startDate,
     endDate: schedulePeriod.endDate,
+    changeReason: '',
   }
 }
 
@@ -84,7 +86,11 @@ export default function SchedulePeriodFormDrawer({
   async function handleFinish(values) {
     setSubmitting(true)
     try {
-      await onSubmit({ ...values, name: values.name.trim() })
+      await onSubmit({
+        ...values,
+        name: values.name.trim(),
+        changeReason: values.changeReason?.trim() || null,
+      })
       form.resetFields()
       onClose()
     } catch (error) {
@@ -202,6 +208,23 @@ export default function SchedulePeriodFormDrawer({
               </Form.Item>
             </Col>
           </Row>
+          {editing && (
+            <Form.Item
+              label="Lý do chỉnh sửa"
+              name="changeReason"
+              rules={[
+                { required: true, whitespace: true, message: 'Vui lòng nhập lý do chỉnh sửa' },
+                { max: 500, message: 'Lý do không được vượt quá 500 ký tự' },
+              ]}
+            >
+              <Input.TextArea
+                maxLength={500}
+                placeholder="Ví dụ: Điều chỉnh phạm vi lịch theo kế hoạch vận hành"
+                rows={3}
+                showCount
+              />
+            </Form.Item>
+          )}
         </Form>
       </Drawer>
     </>

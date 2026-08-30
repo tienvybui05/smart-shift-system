@@ -23,7 +23,8 @@ public interface SchedulePeriodService {
 
     SchedulePeriodResponse updateSchedulePeriod(
         Long id,
-        SchedulePeriodRequest request
+        SchedulePeriodRequest request,
+        String currentUsername
     );
 
     SchedulePublicationCheckResponse checkPublication(Long id);
@@ -33,5 +34,5 @@ public interface SchedulePeriodService {
         String currentUsername
     );
 
-    SchedulePeriodResponse lockSchedulePeriod(Long id);
+    SchedulePeriodResponse lockSchedulePeriod(Long id, String currentUsername);
 }

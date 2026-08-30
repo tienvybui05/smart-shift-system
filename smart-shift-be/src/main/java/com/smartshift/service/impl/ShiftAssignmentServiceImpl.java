@@ -15,6 +15,8 @@ import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.AvailabilityType;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -27,6 +29,7 @@ import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.ShiftAssignmentService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +45,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.smartshift.service.ScheduleAuditSnapshots.assignment;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +67,7 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
     private final UserRepository userRepository;
     private final ShiftAssignmentMapper shiftAssignmentMapper;
     private final AssignmentConstraintService assignmentConstraintService;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     public ShiftAssignmentSummaryResponse getSummary(Long workShiftId) {
@@ -189,14 +195,29 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
             assignedBy,
             request.note()
         );
-        shiftAssignmentRepository.saveAndFlush(assignment);
+        ShiftAssignment savedAssignment = shiftAssignmentRepository
+            .saveAndFlush(assignment);
         refreshWorkShiftStatus(workShift);
+        scheduleAuditService.record(
+            assignedByUsername,
+            workShift.getSchedulePeriod(),
+            workShift,
+            ScheduleAuditAction.ASSIGNED,
+            ScheduleAuditTargetType.SHIFT_ASSIGNMENT,
+            savedAssignment.getId(),
+            request.note(),
+            null,
+            assignment(savedAssignment)
+        );
         return buildSummary(workShift);
     }
 
     @Override
     @Transactional
-    public ShiftAssignmentSummaryResponse removeAssignment(Long assignmentId) {
+    public ShiftAssignmentSummaryResponse removeAssignment(
+        Long assignmentId,
+        String currentUsername
+    ) {
         Long workShiftId = shiftAssignmentRepository
             .findWorkShiftIdByAssignmentId(assignmentId)
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -210,10 +231,22 @@ public class ShiftAssignmentServiceImpl implements ShiftAssignmentService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Không tìm thấy phân công có id " + assignmentId
             ));
+        var beforeData = assignment(assignment);
 
         shiftAssignmentRepository.delete(assignment);
         shiftAssignmentRepository.flush();
         refreshWorkShiftStatus(workShift);
+        scheduleAuditService.record(
+            currentUsername,
+            workShift.getSchedulePeriod(),
+            workShift,
+            ScheduleAuditAction.UNASSIGNED,
+            ScheduleAuditTargetType.SHIFT_ASSIGNMENT,
+            assignmentId,
+            null,
+            beforeData,
+            null
+        );
         return buildSummary(workShift);
     }
 

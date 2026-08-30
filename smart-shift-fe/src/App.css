@@ -1855,6 +1855,75 @@
   gap: 2px;
 }
 
+.schedule-audit-alert {
+  margin-bottom: 18px;
+}
+
+.schedule-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 0.75fr)) minmax(190px, 1fr) minmax(210px, 1.2fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  padding: 18px;
+}
+
+.schedule-audit-filters .ant-input,
+.schedule-audit-filters .ant-select-selector,
+.schedule-audit-filters > .ant-btn {
+  min-height: 40px;
+}
+
+.schedule-audit-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.schedule-audit-detail-heading span:last-child {
+  width: 100%;
+  color: #858c9e;
+}
+
+.schedule-audit-diff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.schedule-audit-diff-grid section {
+  min-width: 0;
+}
+
+.schedule-audit-diff-grid pre {
+  overflow: auto;
+  min-height: 260px;
+  max-height: 480px;
+  margin-top: 9px;
+  padding: 14px;
+  border: 1px solid #e5e3f4;
+  border-radius: 12px;
+  background: #f8f8fd;
+  color: #35324b;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 1050px) {
+  .schedule-audit-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .schedule-audit-filters,
+  .schedule-audit-diff-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .attendance-approval-employee {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

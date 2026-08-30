@@ -91,7 +91,11 @@ public class SchedulePeriodController {
             request.locationId()
         );
         return ResponseEntity.ok(
-            schedulePeriodService.updateSchedulePeriod(id, request)
+            schedulePeriodService.updateSchedulePeriod(
+                id,
+                request,
+                authentication.getName()
+            )
         );
     }
 
@@ -136,7 +140,10 @@ public class SchedulePeriodController {
             id
         );
         return ResponseEntity.ok(
-            schedulePeriodService.lockSchedulePeriod(id)
+            schedulePeriodService.lockSchedulePeriod(
+                id,
+                authentication.getName()
+            )
         );
     }
 }

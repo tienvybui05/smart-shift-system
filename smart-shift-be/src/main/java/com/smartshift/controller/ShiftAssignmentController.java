@@ -109,7 +109,10 @@ public class ShiftAssignmentController {
             assignmentId
         );
         return ResponseEntity.ok(
-            shiftAssignmentService.removeAssignment(assignmentId)
+            shiftAssignmentService.removeAssignment(
+                assignmentId,
+                authentication.getName()
+            )
         );
     }
 }

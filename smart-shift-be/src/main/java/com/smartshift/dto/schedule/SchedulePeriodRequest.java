@@ -20,6 +20,9 @@ public record SchedulePeriodRequest(
     LocalDate startDate,
 
     @NotNull(message = "Ngày kết thúc không được để trống")
-    LocalDate endDate
+    LocalDate endDate,
+
+    @Size(max = 500, message = "Lý do thay đổi không được vượt quá 500 ký tự")
+    String changeReason
 ) {
 }

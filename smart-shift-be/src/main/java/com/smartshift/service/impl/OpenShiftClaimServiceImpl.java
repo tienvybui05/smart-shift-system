@@ -16,6 +16,8 @@ import com.smartshift.enums.NotificationReferenceType;
 import com.smartshift.enums.NotificationType;
 import com.smartshift.enums.OpenShiftClaimStatus;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -31,6 +33,7 @@ import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.OpenShiftClaimService;
 import com.smartshift.service.NotificationService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +47,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.smartshift.service.ScheduleAuditSnapshots.assignment;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +72,7 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
     private final ShiftAssignmentMapper shiftAssignmentMapper;
     private final AssignmentConstraintService assignmentConstraintService;
     private final NotificationService notificationService;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     public List<AvailableOpenShiftResponse> getAvailableShifts(
@@ -348,6 +354,17 @@ public class OpenShiftClaimServiceImpl implements OpenShiftClaimService {
         markReviewed(claim, reviewer, request);
         openShiftClaimRepository.saveAndFlush(claim);
         refreshWorkShiftStatus(workShift);
+        scheduleAuditService.record(
+            reviewer.getUsername(),
+            workShift.getSchedulePeriod(),
+            workShift,
+            ScheduleAuditAction.ASSIGNED,
+            ScheduleAuditTargetType.SHIFT_ASSIGNMENT,
+            savedAssignment.getId(),
+            request.reviewerNote(),
+            null,
+            assignment(savedAssignment)
+        );
         rejectRemainingClaimsIfPositionIsFilled(
             workShift,
             requirement,

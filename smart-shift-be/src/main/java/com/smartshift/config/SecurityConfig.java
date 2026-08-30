@@ -194,6 +194,7 @@ public class SecurityConfig {
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
                     "/api/schedules/**",
+                    "/api/schedule-audits/**",
                     "/api/schedule-periods/**",
                     "/api/shift-assignments/**",
                     "/api/shift-requirements/**",

@@ -13,6 +13,8 @@ import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.AvailabilityType;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.ResourceNotFoundException;
@@ -24,6 +26,7 @@ import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.AutoScheduleService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +42,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +69,7 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
     private final UserRepository userRepository;
     private final ShiftAssignmentMapper shiftAssignmentMapper;
     private final AssignmentConstraintService assignmentConstraintService;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     @Transactional
@@ -215,7 +220,7 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
                 .add(preferencePercentage.multiply(new BigDecimal("0.20")))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return new AutoScheduleResponse(
+        AutoScheduleResponse response = new AutoScheduleResponse(
             schedulePeriod.getId(),
             generatedAt,
             activeShifts.size(),
@@ -235,6 +240,31 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
             generatedAssignments,
             shortages
         );
+        Map<String, Object> afterData = new LinkedHashMap<>();
+        afterData.put("generatedAt", generatedAt);
+        afterData.put("assignmentsCreated", generatedAssignments.size());
+        afterData.put("assignedEmployeesBefore", assignedBefore);
+        afterData.put("assignedEmployeesAfter", assignedAfter);
+        afterData.put("coveragePercentage", coveragePercentage);
+        afterData.put("qualityScore", qualityScore);
+        afterData.put(
+            "assignmentIds",
+            generatedAssignments.stream()
+                .map(AutoScheduleAssignmentResponse::assignmentId)
+                .toList()
+        );
+        scheduleAuditService.record(
+            generatedByUsername,
+            schedulePeriod,
+            null,
+            ScheduleAuditAction.AUTO_SCHEDULED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            schedulePeriod.getId(),
+            null,
+            null,
+            afterData
+        );
+        return response;
     }
 
     private List<RequirementTask> buildTasks(

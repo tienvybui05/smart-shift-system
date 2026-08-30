@@ -29,5 +29,8 @@ public interface ShiftAssignmentService {
         String assignedByUsername
     );
 
-    ShiftAssignmentSummaryResponse removeAssignment(Long assignmentId);
+    ShiftAssignmentSummaryResponse removeAssignment(
+        Long assignmentId,
+        String currentUsername
+    );
 }

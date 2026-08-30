@@ -30,6 +30,7 @@ import com.smartshift.repository.UserRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.NotificationService;
+import com.smartshift.service.ScheduleAuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,6 +80,9 @@ class OpenShiftClaimServiceImplTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private ScheduleAuditService scheduleAuditService;
+
     private OpenShiftClaimServiceImpl service;
     private Location location;
     private Position position;
@@ -100,7 +104,8 @@ class OpenShiftClaimServiceImplTest {
             new OpenShiftClaimMapper(),
             new ShiftAssignmentMapper(),
             assignmentConstraintService,
-            notificationService
+            notificationService,
+            scheduleAuditService
         );
         location = location(1L);
         position = position(2L);

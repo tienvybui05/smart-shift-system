@@ -23,6 +23,7 @@ function valuesFromTemplate(template, workDate) {
     endTime: normalizeTime(template?.endTime),
     breakMinutes: Number(template?.breakMinutes || 0),
     note: '',
+    changeReason: '',
   }
 }
 
@@ -34,6 +35,7 @@ function getEditValues(workShift) {
     endTime: normalizeTime(workShift.endTime),
     breakMinutes: Number(workShift.breakMinutes),
     note: workShift.note,
+    changeReason: '',
   }
 }
 
@@ -90,6 +92,7 @@ export default function WorkShiftFormDrawer({
         ...values,
         schedulePeriodId: schedulePeriod.id,
         note: values.note?.trim() || null,
+        changeReason: values.changeReason?.trim() || null,
       })
       form.resetFields()
       onClose()
@@ -224,6 +227,25 @@ export default function WorkShiftFormDrawer({
                 <Input.TextArea rows={4} maxLength={1000} showCount placeholder="Ghi chú riêng cho ca này" />
               </Form.Item>
             </Col>
+            {editing && (
+              <Col span={24}>
+                <Form.Item
+                  label="Lý do chỉnh sửa"
+                  name="changeReason"
+                  rules={[
+                    { required: true, whitespace: true, message: 'Vui lòng nhập lý do chỉnh sửa' },
+                    { max: 500, message: 'Lý do không được vượt quá 500 ký tự' },
+                  ]}
+                >
+                  <Input.TextArea
+                    maxLength={500}
+                    placeholder="Ví dụ: Điều chỉnh giờ ca theo nhu cầu vận hành"
+                    rows={3}
+                    showCount
+                  />
+                </Form.Item>
+              </Col>
+            )}
           </Row>
         </Form>
       </Drawer>

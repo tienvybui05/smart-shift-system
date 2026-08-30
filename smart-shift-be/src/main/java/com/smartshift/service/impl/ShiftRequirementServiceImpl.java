@@ -10,6 +10,8 @@ import com.smartshift.entity.ShiftRequirement;
 import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.ResourceNotFoundException;
@@ -20,6 +22,7 @@ import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.ShiftRequirementRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.ShiftRequirementService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.smartshift.service.ScheduleAuditSnapshots.requirements;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +50,7 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
     private final WorkShiftRepository workShiftRepository;
     private final PositionRepository positionRepository;
     private final ShiftRequirementMapper shiftRequirementMapper;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     public ShiftRequirementSummaryResponse getRequirements(Long workShiftId) {
@@ -61,7 +67,8 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
     @Transactional
     public ShiftRequirementSummaryResponse saveRequirements(
         Long workShiftId,
-        SaveShiftRequirementsRequest request
+        SaveShiftRequirementsRequest request,
+        String currentUsername
     ) {
         lockSchedulePeriodForShift(workShiftId);
         WorkShift sourceWorkShift = findWorkShiftByIdForUpdate(workShiftId);
@@ -77,7 +84,9 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
             replaceRequirements(
                 targetWorkShift,
                 request.requirements(),
-                positions
+                positions,
+                currentUsername,
+                request.changeReason()
             );
         }
 
@@ -96,10 +105,13 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
     private void replaceRequirements(
         WorkShift workShift,
         List<ShiftRequirementItemRequest> requests,
-        Map<Long, Position> positions
+        Map<Long, Position> positions,
+        String currentUsername,
+        String changeReason
     ) {
         List<ShiftRequirement> existingRequirements =
             shiftRequirementRepository.findAllByWorkShiftId(workShift.getId());
+        var beforeData = requirements(existingRequirements);
         Map<Long, ShiftRequirement> existingByPosition = new HashMap<>();
         for (ShiftRequirement requirement : existingRequirements) {
             existingByPosition.put(
@@ -146,6 +158,19 @@ public class ShiftRequirementServiceImpl implements ShiftRequirementService {
         shiftRequirementRepository.saveAll(requirementsToSave);
         shiftRequirementRepository.flush();
         refreshWorkShiftStatus(workShift, requests);
+        List<ShiftRequirement> savedRequirements = shiftRequirementRepository
+            .findAllByWorkShiftId(workShift.getId());
+        scheduleAuditService.record(
+            currentUsername,
+            workShift.getSchedulePeriod(),
+            workShift,
+            ScheduleAuditAction.REQUIREMENTS_CHANGED,
+            ScheduleAuditTargetType.SHIFT_REQUIREMENT,
+            workShift.getId(),
+            changeReason,
+            beforeData,
+            requirements(savedRequirements)
+        );
     }
 
     private void validateAgainstCurrentAssignments(

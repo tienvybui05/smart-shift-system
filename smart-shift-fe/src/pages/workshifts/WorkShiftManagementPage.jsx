@@ -222,7 +222,13 @@ export default function WorkShiftManagementPage() {
     const targetStatus = workShift.status === 'CANCELLED' ? 'OPEN' : 'CANCELLED'
     setStatusChangingId(workShift.id)
     try {
-      await updateWorkShiftStatus(workShift.id, targetStatus)
+      await updateWorkShiftStatus(
+        workShift.id,
+        targetStatus,
+        targetStatus === 'OPEN'
+          ? 'Mở lại ca từ màn hình quản lý'
+          : 'Hủy ca từ màn hình quản lý',
+      )
       messageApi.success(targetStatus === 'OPEN' ? 'Đã mở lại ca làm.' : 'Đã hủy ca làm.')
       setLoading(true)
       setRefreshKey((current) => current + 1)

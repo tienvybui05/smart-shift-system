@@ -20,7 +20,10 @@ export async function updateWorkShift(id, payload) {
   return response.data
 }
 
-export async function updateWorkShiftStatus(id, status) {
-  const response = await httpClient.patch(`/work-shifts/${id}/status`, { status })
+export async function updateWorkShiftStatus(id, status, changeReason = null) {
+  const response = await httpClient.patch(`/work-shifts/${id}/status`, {
+    status,
+    changeReason,
+  })
   return response.data
 }

@@ -51,6 +51,9 @@ const MyPayrollPage = lazy(
 const PayrollManagementPage = lazy(
   () => import('./pages/payroll/PayrollManagementPage.jsx'),
 )
+const ScheduleAuditPage = lazy(
+  () => import('./pages/schedules/ScheduleAuditPage.jsx'),
+)
 const OpenShiftClaimReviewPage = lazy(
   () => import('./pages/openshifts/OpenShiftClaimReviewPage.jsx'),
 )
@@ -84,6 +87,7 @@ export default function App() {
                 path="payroll/manage"
                 element={<PayrollManagementPage />}
               />
+              <Route path="schedule-audits" element={<ScheduleAuditPage />} />
               <Route path="time-off/review" element={<TimeOffReviewPage />} />
               <Route
                 path="open-shifts/review"

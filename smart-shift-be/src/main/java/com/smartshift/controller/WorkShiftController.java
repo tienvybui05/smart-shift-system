@@ -76,7 +76,10 @@ public class WorkShiftController {
             request.shiftTemplateId()
         );
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(workShiftService.createWorkShift(request));
+            .body(workShiftService.createWorkShift(
+                request,
+                authentication.getName()
+            ));
     }
 
     @PostMapping("/generate")
@@ -93,7 +96,10 @@ public class WorkShiftController {
             request.shiftTemplateIds()
         );
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(workShiftService.generateWorkShifts(request));
+            .body(workShiftService.generateWorkShifts(
+                request,
+                authentication.getName()
+            ));
     }
 
     @PutMapping("/{id}")
@@ -112,7 +118,11 @@ public class WorkShiftController {
             request.shiftTemplateId()
         );
         return ResponseEntity.ok(
-            workShiftService.updateWorkShift(id, request)
+            workShiftService.updateWorkShift(
+                id,
+                request,
+                authentication.getName()
+            )
         );
     }
 
@@ -124,7 +134,12 @@ public class WorkShiftController {
     ) {
         schedulingAccessService.requireWorkShift(authentication.getName(), id);
         return ResponseEntity.ok(
-            workShiftService.updateStatus(id, request.status())
+            workShiftService.updateStatus(
+                id,
+                request.status(),
+                request.changeReason(),
+                authentication.getName()
+            )
         );
     }
 }

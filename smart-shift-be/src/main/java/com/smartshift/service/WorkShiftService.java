@@ -17,13 +17,26 @@ public interface WorkShiftService {
 
     WorkShiftResponse getWorkShiftById(Long id);
 
-    WorkShiftResponse createWorkShift(WorkShiftRequest request);
-
-    WorkShiftResponse updateWorkShift(Long id, WorkShiftRequest request);
-
-    GenerateWorkShiftsResponse generateWorkShifts(
-        GenerateWorkShiftsRequest request
+    WorkShiftResponse createWorkShift(
+        WorkShiftRequest request,
+        String currentUsername
     );
 
-    WorkShiftResponse updateStatus(Long id, WorkShiftStatus status);
+    WorkShiftResponse updateWorkShift(
+        Long id,
+        WorkShiftRequest request,
+        String currentUsername
+    );
+
+    GenerateWorkShiftsResponse generateWorkShifts(
+        GenerateWorkShiftsRequest request,
+        String currentUsername
+    );
+
+    WorkShiftResponse updateStatus(
+        Long id,
+        WorkShiftStatus status,
+        String changeReason,
+        String currentUsername
+    );
 }

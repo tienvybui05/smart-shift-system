@@ -16,6 +16,8 @@ import com.smartshift.enums.AssignmentStatus;
 import com.smartshift.enums.NotificationReferenceType;
 import com.smartshift.enums.NotificationType;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -30,6 +32,7 @@ import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.AssignmentConstraintService;
 import com.smartshift.service.SchedulePeriodService;
 import com.smartshift.service.NotificationService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +46,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.smartshift.service.ScheduleAuditSnapshots.schedulePeriod;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +66,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
     private final SchedulePeriodMapper schedulePeriodMapper;
     private final AssignmentConstraintService assignmentConstraintService;
     private final NotificationService notificationService;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     public List<SchedulePeriodResponse> getSchedulePeriods(
@@ -94,27 +100,53 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
             location,
             createdBy
         );
-        return schedulePeriodMapper.toResponse(
-            schedulePeriodRepository.save(schedulePeriod)
+        SchedulePeriod savedPeriod = schedulePeriodRepository.save(
+            schedulePeriod
         );
+        scheduleAuditService.record(
+            currentUsername,
+            savedPeriod,
+            null,
+            ScheduleAuditAction.CREATED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            savedPeriod.getId(),
+            request.changeReason(),
+            null,
+            schedulePeriod(savedPeriod)
+        );
+        return schedulePeriodMapper.toResponse(savedPeriod);
     }
 
     @Override
     @Transactional
     public SchedulePeriodResponse updateSchedulePeriod(
         Long id,
-        SchedulePeriodRequest request
+        SchedulePeriodRequest request,
+        String currentUsername
     ) {
         validateDateRange(request);
         SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(id);
         validateEditable(schedulePeriod);
+        Map<String, Object> beforeData = schedulePeriod(schedulePeriod);
         Location location = findActiveLocationById(request.locationId());
         validateNoOverlap(location.getId(), request, id);
 
         schedulePeriodMapper.updateEntity(request, schedulePeriod, location);
-        return schedulePeriodMapper.toResponse(
-            schedulePeriodRepository.save(schedulePeriod)
+        SchedulePeriod savedPeriod = schedulePeriodRepository.save(
+            schedulePeriod
         );
+        scheduleAuditService.record(
+            currentUsername,
+            savedPeriod,
+            null,
+            ScheduleAuditAction.UPDATED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            savedPeriod.getId(),
+            request.changeReason(),
+            beforeData,
+            schedulePeriod(savedPeriod)
+        );
+        return schedulePeriodMapper.toResponse(savedPeriod);
     }
 
     @Override
@@ -129,6 +161,7 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
         String currentUsername
     ) {
         SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(id);
+        Map<String, Object> beforeData = schedulePeriod(schedulePeriod);
         SchedulePublicationCheckResponse publicationCheck =
             buildPublicationCheck(schedulePeriod);
         if (!publicationCheck.canPublish()) {
@@ -143,6 +176,17 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
         schedulePeriod.setPublishedAt(Instant.now());
         SchedulePeriod savedPeriod = schedulePeriodRepository.save(
             schedulePeriod
+        );
+        scheduleAuditService.record(
+            currentUsername,
+            savedPeriod,
+            null,
+            ScheduleAuditAction.PUBLISHED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            savedPeriod.getId(),
+            null,
+            beforeData,
+            schedulePeriod(savedPeriod)
         );
         notifyAssignedEmployeesOfPublication(savedPeriod);
         return schedulePeriodMapper.toResponse(savedPeriod);
@@ -169,17 +213,33 @@ public class SchedulePeriodServiceImpl implements SchedulePeriodService {
 
     @Override
     @Transactional
-    public SchedulePeriodResponse lockSchedulePeriod(Long id) {
+    public SchedulePeriodResponse lockSchedulePeriod(
+        Long id,
+        String currentUsername
+    ) {
         SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(id);
         if (schedulePeriod.getStatus() != SchedulePeriodStatus.PUBLISHED) {
             throw new BusinessRuleException(
                 "Chỉ có thể khóa kỳ xếp lịch đã được công bố"
             );
         }
+        Map<String, Object> beforeData = schedulePeriod(schedulePeriod);
         schedulePeriod.setStatus(SchedulePeriodStatus.LOCKED);
-        return schedulePeriodMapper.toResponse(
-            schedulePeriodRepository.save(schedulePeriod)
+        SchedulePeriod savedPeriod = schedulePeriodRepository.save(
+            schedulePeriod
         );
+        scheduleAuditService.record(
+            currentUsername,
+            savedPeriod,
+            null,
+            ScheduleAuditAction.LOCKED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            savedPeriod.getId(),
+            null,
+            beforeData,
+            schedulePeriod(savedPeriod)
+        );
+        return schedulePeriodMapper.toResponse(savedPeriod);
     }
 
     private SchedulePublicationCheckResponse buildPublicationCheck(

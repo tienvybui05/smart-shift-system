@@ -8,6 +8,8 @@ import com.smartshift.entity.SchedulePeriod;
 import com.smartshift.entity.ShiftTemplate;
 import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.SchedulePeriodStatus;
+import com.smartshift.enums.ScheduleAuditAction;
+import com.smartshift.enums.ScheduleAuditTargetType;
 import com.smartshift.enums.WorkShiftStatus;
 import com.smartshift.exception.BusinessRuleException;
 import com.smartshift.exception.DuplicateResourceException;
@@ -17,6 +19,7 @@ import com.smartshift.repository.SchedulePeriodRepository;
 import com.smartshift.repository.ShiftTemplateRepository;
 import com.smartshift.repository.WorkShiftRepository;
 import com.smartshift.service.WorkShiftService;
+import com.smartshift.service.ScheduleAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +30,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
+import static com.smartshift.service.ScheduleAuditSnapshots.workShift;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +45,7 @@ public class WorkShiftServiceImpl implements WorkShiftService {
     private final SchedulePeriodRepository schedulePeriodRepository;
     private final ShiftTemplateRepository shiftTemplateRepository;
     private final WorkShiftMapper workShiftMapper;
+    private final ScheduleAuditService scheduleAuditService;
 
     @Override
     public List<WorkShiftResponse> getWorkShifts(
@@ -58,7 +66,10 @@ public class WorkShiftServiceImpl implements WorkShiftService {
 
     @Override
     @Transactional
-    public WorkShiftResponse createWorkShift(WorkShiftRequest request) {
+    public WorkShiftResponse createWorkShift(
+        WorkShiftRequest request,
+        String currentUsername
+    ) {
         SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(
             request.schedulePeriodId()
         );
@@ -75,14 +86,27 @@ public class WorkShiftServiceImpl implements WorkShiftService {
             shiftTemplate
         );
         validateUniqueStart(schedulePeriod.getId(), workShift.getStartAt(), null);
-        return workShiftMapper.toResponse(workShiftRepository.save(workShift));
+        WorkShift savedShift = workShiftRepository.save(workShift);
+        scheduleAuditService.record(
+            currentUsername,
+            schedulePeriod,
+            savedShift,
+            ScheduleAuditAction.CREATED,
+            ScheduleAuditTargetType.WORK_SHIFT,
+            savedShift.getId(),
+            request.changeReason(),
+            null,
+            workShift(savedShift)
+        );
+        return workShiftMapper.toResponse(savedShift);
     }
 
     @Override
     @Transactional
     public WorkShiftResponse updateWorkShift(
         Long id,
-        WorkShiftRequest request
+        WorkShiftRequest request,
+        String currentUsername
     ) {
         SchedulePeriod lockedPeriod = lockSchedulePeriodForShift(id);
         WorkShift workShift = findWorkShiftByIdForUpdate(id);
@@ -97,6 +121,7 @@ public class WorkShiftServiceImpl implements WorkShiftService {
                 "Chỉ có thể cập nhật ca làm đang mở"
             );
         }
+        Map<String, Object> beforeData = workShift(workShift);
 
         ShiftTemplate shiftTemplate = findValidShiftTemplate(
             request.shiftTemplateId(),
@@ -114,13 +139,26 @@ public class WorkShiftServiceImpl implements WorkShiftService {
             workShift.getStartAt(),
             id
         );
-        return workShiftMapper.toResponse(workShiftRepository.save(workShift));
+        WorkShift savedShift = workShiftRepository.save(workShift);
+        scheduleAuditService.record(
+            currentUsername,
+            savedShift.getSchedulePeriod(),
+            savedShift,
+            ScheduleAuditAction.UPDATED,
+            ScheduleAuditTargetType.WORK_SHIFT,
+            savedShift.getId(),
+            request.changeReason(),
+            beforeData,
+            workShift(savedShift)
+        );
+        return workShiftMapper.toResponse(savedShift);
     }
 
     @Override
     @Transactional
     public GenerateWorkShiftsResponse generateWorkShifts(
-        GenerateWorkShiftsRequest request
+        GenerateWorkShiftsRequest request,
+        String currentUsername
     ) {
         SchedulePeriod schedulePeriod = findSchedulePeriodByIdForUpdate(
             request.schedulePeriodId()
@@ -163,16 +201,43 @@ public class WorkShiftServiceImpl implements WorkShiftService {
             .stream()
             .map(workShiftMapper::toResponse)
             .toList();
-        return new GenerateWorkShiftsResponse(
+        GenerateWorkShiftsResponse response = new GenerateWorkShiftsResponse(
             responses.size(),
             skippedCount,
             responses
         );
+        Map<String, Object> afterData = new LinkedHashMap<>();
+        afterData.put("startDate", request.startDate());
+        afterData.put("endDate", request.endDate());
+        afterData.put("shiftTemplateIds", request.shiftTemplateIds());
+        afterData.put("createdCount", responses.size());
+        afterData.put("skippedCount", skippedCount);
+        afterData.put(
+            "workShiftIds",
+            responses.stream().map(WorkShiftResponse::id).toList()
+        );
+        scheduleAuditService.record(
+            currentUsername,
+            schedulePeriod,
+            null,
+            ScheduleAuditAction.GENERATED,
+            ScheduleAuditTargetType.SCHEDULE_PERIOD,
+            schedulePeriod.getId(),
+            null,
+            null,
+            afterData
+        );
+        return response;
     }
 
     @Override
     @Transactional
-    public WorkShiftResponse updateStatus(Long id, WorkShiftStatus status) {
+    public WorkShiftResponse updateStatus(
+        Long id,
+        WorkShiftStatus status,
+        String changeReason,
+        String currentUsername
+    ) {
         SchedulePeriod lockedPeriod = lockSchedulePeriodForShift(id);
         WorkShift workShift = findWorkShiftByIdForUpdate(id);
         validateEditablePeriod(lockedPeriod);
@@ -187,8 +252,21 @@ public class WorkShiftServiceImpl implements WorkShiftService {
                 "Chỉ có thể mở lại hoặc hủy ca làm tại bước này"
             );
         }
+        Map<String, Object> beforeData = workShift(workShift);
         workShift.setStatus(status);
-        return workShiftMapper.toResponse(workShiftRepository.save(workShift));
+        WorkShift savedShift = workShiftRepository.save(workShift);
+        scheduleAuditService.record(
+            currentUsername,
+            savedShift.getSchedulePeriod(),
+            savedShift,
+            ScheduleAuditAction.STATUS_CHANGED,
+            ScheduleAuditTargetType.WORK_SHIFT,
+            savedShift.getId(),
+            changeReason,
+            beforeData,
+            workShift(savedShift)
+        );
+        return workShiftMapper.toResponse(savedShift);
     }
 
     private void validateWorkShiftRequest(
