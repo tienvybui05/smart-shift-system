@@ -94,6 +94,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
         SELECT user
         FROM User user
+        WHERE user.location.id = :locationId
+          AND user.active = true
+          AND user.role.name = 'ROLE_EMPLOYEE'
+        ORDER BY user.fullName ASC
+        """)
+    List<User> findActivePayrollEmployeesByLocation(
+        @Param("locationId") Long locationId
+    );
+
+    @EntityGraph(attributePaths = {"role", "location", "position"})
+    @Query("""
+        SELECT user
+        FROM User user
         WHERE (
             LOWER(user.employeeCode) LIKE CONCAT('%', LOWER(:keyword), '%')
             OR LOWER(user.username) LIKE CONCAT('%', LOWER(:keyword), '%')

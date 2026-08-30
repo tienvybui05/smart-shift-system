@@ -31,6 +31,8 @@ function getDefaultValues() {
     maxHoursPerDay: 8,
     minRestHours: 8,
     maxConsecutiveDays: 6,
+    hourlyRate: 0,
+    salaryCoefficient: 1,
     active: true,
   }
 }
@@ -52,6 +54,8 @@ function getEditValues(user) {
     maxHoursPerDay: Number(user.maxHoursPerDay),
     minRestHours: Number(user.minRestHours),
     maxConsecutiveDays: user.maxConsecutiveDays,
+    hourlyRate: Number(user.hourlyRate || 0),
+    salaryCoefficient: Number(user.salaryCoefficient || 1),
   }
 }
 
@@ -280,6 +284,45 @@ export default function UserFormDrawer({
             <Col xs={24} md={12}>
               <Form.Item label="Ngày vào làm" name="hireDate" rules={[{ required: true, message: 'Vui lòng chọn ngày vào làm' }]}>
                 <Input type="date" max={getToday()} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider />
+          <div className="form-section-intro">
+            <strong>Thông tin tính lương</strong>
+            <span>Lương dự tính được tính theo giờ thực tế × đơn giá × hệ số.</span>
+          </div>
+
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Đơn giá theo giờ"
+                name="hourlyRate"
+                rules={[{ required: true, message: 'Vui lòng nhập đơn giá theo giờ' }]}
+              >
+                <InputNumber
+                  addonAfter="đ/giờ"
+                  min={0}
+                  max={9999999999}
+                  precision={2}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Hệ số lương"
+                name="salaryCoefficient"
+                rules={[{ required: true, message: 'Vui lòng nhập hệ số lương' }]}
+              >
+                <InputNumber
+                  min={0.01}
+                  max={10}
+                  precision={2}
+                  step={0.1}
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </Col>
           </Row>

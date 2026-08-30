@@ -4,6 +4,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   DownOutlined,
+  DollarOutlined,
   FileTextOutlined,
   LogoutOutlined,
   MenuOutlined,
@@ -153,6 +154,23 @@ function SidebarContent({ role, onNavigate }) {
             to="/attendance/manage"
           >
             <ClockCircleOutlined /> Quản lý chấm công
+          </NavLink>
+        )}
+        {role === 'ROLE_EMPLOYEE' ? (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/payroll"
+          >
+            <DollarOutlined /> Công và lương
+          </NavLink>
+        ) : (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/payroll/manage"
+          >
+            <DollarOutlined /> Tính công và lương
           </NavLink>
         )}
 

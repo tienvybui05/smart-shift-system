@@ -19,6 +19,10 @@ export function getNotificationTarget(item, role) {
       return role === 'ROLE_EMPLOYEE'
         ? '/attendance'
         : '/attendance/manage'
+    case 'PAYROLL_RECORD':
+      return role === 'ROLE_EMPLOYEE'
+        ? '/payroll'
+        : '/payroll/manage'
     default:
       return null
   }

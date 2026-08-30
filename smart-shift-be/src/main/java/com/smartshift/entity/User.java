@@ -102,6 +102,22 @@ public class User extends BaseTimeEntity {
     @Column(name = "max_consecutive_days", nullable = false)
     private Short maxConsecutiveDays;
 
+    @Column(
+        name = "hourly_rate",
+        nullable = false,
+        precision = 12,
+        scale = 2
+    )
+    private BigDecimal hourlyRate = BigDecimal.ZERO;
+
+    @Column(
+        name = "salary_coefficient",
+        nullable = false,
+        precision = 5,
+        scale = 2
+    )
+    private BigDecimal salaryCoefficient = BigDecimal.ONE;
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 }

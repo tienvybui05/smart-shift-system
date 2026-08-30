@@ -50,6 +50,8 @@ public class UserMapper {
         user.setMaxHoursPerDay(request.maxHoursPerDay());
         user.setMinRestHours(request.minRestHours());
         user.setMaxConsecutiveDays(request.maxConsecutiveDays());
+        user.setHourlyRate(request.hourlyRate());
+        user.setSalaryCoefficient(request.salaryCoefficient());
     }
 
     public UserResponse toResponse(User user) {
@@ -75,6 +77,8 @@ public class UserMapper {
             user.getMaxHoursPerDay(),
             user.getMinRestHours(),
             user.getMaxConsecutiveDays(),
+            user.getHourlyRate(),
+            user.getSalaryCoefficient(),
             user.isActive(),
             user.getCreatedAt(),
             user.getUpdatedAt()
@@ -103,6 +107,8 @@ public class UserMapper {
         user.setMaxHoursPerDay(request.maxHoursPerDay());
         user.setMinRestHours(request.minRestHours());
         user.setMaxConsecutiveDays(request.maxConsecutiveDays());
+        user.setHourlyRate(request.hourlyRate());
+        user.setSalaryCoefficient(request.salaryCoefficient());
     }
 
     private String normalizeUsername(String username) {

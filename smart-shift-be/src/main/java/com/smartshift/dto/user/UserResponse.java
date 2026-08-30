@@ -28,6 +28,8 @@ public record UserResponse(
     BigDecimal maxHoursPerDay,
     BigDecimal minRestHours,
     Short maxConsecutiveDays,
+    BigDecimal hourlyRate,
+    BigDecimal salaryCoefficient,
     boolean active,
     Instant createdAt,
     Instant updatedAt

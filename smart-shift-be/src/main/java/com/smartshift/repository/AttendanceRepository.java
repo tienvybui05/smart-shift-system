@@ -92,8 +92,8 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
         JOIN FETCH schedulePeriod.location location
         LEFT JOIN FETCH attendance.approvedBy approvedBy
         WHERE employee.username = :username
+          AND workShift.startAt >= :rangeStart
           AND workShift.startAt < :rangeEnd
-          AND workShift.endAt > :rangeStart
         ORDER BY workShift.startAt DESC
         """)
     List<Attendance> findMyAttendancesInRange(
@@ -120,6 +120,28 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Attendance> search(
         @Param("locationId") Long locationId,
         @Param("status") AttendanceStatus status,
+        @Param("rangeStart") Instant rangeStart,
+        @Param("rangeEnd") Instant rangeEnd
+    );
+
+    @Query("""
+        SELECT attendance
+        FROM Attendance attendance
+        JOIN FETCH attendance.shiftAssignment assignment
+        JOIN FETCH assignment.user employee
+        JOIN FETCH assignment.workShift workShift
+        JOIN FETCH workShift.schedulePeriod schedulePeriod
+        JOIN FETCH schedulePeriod.location location
+        WHERE location.id = :locationId
+          AND attendance.approvedAt IS NOT NULL
+          AND attendance.checkInAt IS NOT NULL
+          AND attendance.checkOutAt IS NOT NULL
+          AND workShift.startAt < :rangeEnd
+          AND workShift.endAt > :rangeStart
+        ORDER BY employee.id ASC, workShift.startAt ASC
+        """)
+    List<Attendance> findApprovedCompletedForPayroll(
+        @Param("locationId") Long locationId,
         @Param("rangeStart") Instant rangeStart,
         @Param("rangeEnd") Instant rangeEnd
     );

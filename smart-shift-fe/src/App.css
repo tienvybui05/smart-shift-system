@@ -1811,6 +1811,50 @@
   gap: 14px;
 }
 
+.payroll-formula-alert {
+  margin-bottom: 18px;
+}
+
+.payroll-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(220px, 1.2fr) auto;
+  gap: 10px;
+  padding: 18px;
+}
+
+.payroll-filter-panel--employee {
+  grid-template-columns: minmax(150px, 0.8fr) minmax(150px, 0.8fr) auto;
+  max-width: 720px;
+}
+
+.payroll-filter-panel .ant-input,
+.payroll-filter-panel .ant-select-selector,
+.payroll-filter-panel > .ant-btn {
+  min-height: 40px;
+}
+
+.payroll-number-cell {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.payroll-number-cell span {
+  overflow: hidden;
+  max-width: 130px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-total-amount {
+  color: #4f3fe7;
+}
+
+.payroll-actions {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+
 .attendance-approval-employee {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2144,6 +2188,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .payroll-filter-panel,
+  .payroll-filter-panel--employee {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+  }
+
   .attendance-management-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2443,6 +2493,11 @@
   }
 
   .shift-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-filter-panel,
+  .payroll-filter-panel--employee {
     grid-template-columns: 1fr;
   }
 

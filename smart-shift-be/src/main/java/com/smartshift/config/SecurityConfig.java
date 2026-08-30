@@ -179,6 +179,13 @@ public class SecurityConfig {
                     "/api/attendances/me"
                 ).hasRole("EMPLOYEE")
                 .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/payroll/me"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    "/api/payroll/**"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
                     "/api/attendances/**"
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(

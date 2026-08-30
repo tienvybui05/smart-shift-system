@@ -281,6 +281,18 @@ export default function UserManagementPage() {
       render: (_, user) => `${Number(user.minHoursPerWeek)}–${Number(user.maxHoursPerWeek)}`,
     },
     {
+      title: 'Đơn giá · hệ số',
+      key: 'salary',
+      width: 165,
+      responsive: ['xl'],
+      render: (_, user) => (
+        <div className="employee-cell employee-cell--normal">
+          <strong>{new Intl.NumberFormat('vi-VN').format(Number(user.hourlyRate || 0))} đ/giờ</strong>
+          <span>Hệ số {Number(user.salaryCoefficient || 1)}</span>
+        </div>
+      ),
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'active',
       width: 115,

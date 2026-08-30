@@ -88,6 +88,17 @@ public record CreateUserRequest(
     @Max(value = 7, message = "Số ngày làm liên tiếp không được vượt quá 7")
     Short maxConsecutiveDays,
 
+    @NotNull(message = "Đơn giá theo giờ không được để trống")
+    @DecimalMin(value = "0.0", message = "Đơn giá theo giờ không được âm")
+    @Digits(integer = 10, fraction = 2, message = "Đơn giá theo giờ không đúng định dạng")
+    BigDecimal hourlyRate,
+
+    @NotNull(message = "Hệ số lương không được để trống")
+    @DecimalMin(value = "0.01", message = "Hệ số lương phải lớn hơn 0")
+    @DecimalMax(value = "10.0", message = "Hệ số lương không được vượt quá 10")
+    @Digits(integer = 2, fraction = 2, message = "Hệ số lương chỉ được có tối đa 2 số lẻ")
+    BigDecimal salaryCoefficient,
+
     @NotNull(message = "Trạng thái hoạt động không được để trống")
     Boolean active
 ) {

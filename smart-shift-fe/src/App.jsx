@@ -45,6 +45,12 @@ const AttendanceManagementPage = lazy(
 const NotificationPage = lazy(
   () => import('./pages/notifications/NotificationPage.jsx'),
 )
+const MyPayrollPage = lazy(
+  () => import('./pages/payroll/MyPayrollPage.jsx'),
+)
+const PayrollManagementPage = lazy(
+  () => import('./pages/payroll/PayrollManagementPage.jsx'),
+)
 const OpenShiftClaimReviewPage = lazy(
   () => import('./pages/openshifts/OpenShiftClaimReviewPage.jsx'),
 )
@@ -67,11 +73,16 @@ export default function App() {
             <Route element={<EmployeeOnlyRoute />}>
               <Route path="open-shifts" element={<MyOpenShiftsPage />} />
               <Route path="attendance" element={<MyAttendancePage />} />
+              <Route path="payroll" element={<MyPayrollPage />} />
             </Route>
             <Route element={<AdminOrManagerRoute />}>
               <Route
                 path="attendance/manage"
                 element={<AttendanceManagementPage />}
+              />
+              <Route
+                path="payroll/manage"
+                element={<PayrollManagementPage />}
               />
               <Route path="time-off/review" element={<TimeOffReviewPage />} />
               <Route
