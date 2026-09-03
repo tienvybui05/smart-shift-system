@@ -15,6 +15,8 @@ import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
+    boolean existsByShiftAssignmentId(Long shiftAssignmentId);
+
     @Modifying
     @Query(value = """
         INSERT INTO attendances (

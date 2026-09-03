@@ -137,9 +137,23 @@ function SidebarContent({ role, onNavigate }) {
             <AuditOutlined /> Duyệt nhận ca
           </NavLink>
         )}
-        <button className="nav-item" type="button" disabled>
-          <SwapOutlined /> Đổi ca
-        </button>
+        {role === 'ROLE_EMPLOYEE' ? (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/shift-swaps"
+          >
+            <SwapOutlined /> Đổi/nhường ca
+          </NavLink>
+        ) : (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/shift-swaps/review"
+          >
+            <SwapOutlined /> Duyệt đổi ca
+          </NavLink>
+        )}
         {role === 'ROLE_EMPLOYEE' ? (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}

@@ -30,6 +30,10 @@ public class ShiftSwapRequest extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "requester_user_id", nullable = false)
+    private User requesterUser;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "requester_assignment_id", nullable = false)
     private ShiftAssignment requesterAssignment;
 
@@ -48,11 +52,19 @@ public class ShiftSwapRequest extends BaseTimeEntity {
     @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
 
+    @Column(name = "response_note", length = 1000)
+    private String responseNote;
+
+    @Column(name = "responded_at")
+    private Instant respondedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
     private User approvedBy;
 
     @Column(name = "approved_at")
     private Instant approvedAt;
-}
 
+    @Column(name = "reviewer_note", length = 1000)
+    private String reviewerNote;
+}

@@ -5,6 +5,9 @@ export function getNotificationTarget(item, role) {
   if (item.type === 'OPEN_SHIFT_CLAIM_CREATED') {
     return '/open-shifts/review'
   }
+  if (item.type === 'SHIFT_SWAP_REQUEST_ACCEPTED' && role !== 'ROLE_EMPLOYEE') {
+    return '/shift-swaps/review'
+  }
 
   switch (item.referenceType) {
     case 'SCHEDULE_PERIOD':
@@ -15,6 +18,10 @@ export function getNotificationTarget(item, role) {
       return role === 'ROLE_EMPLOYEE'
         ? '/open-shifts'
         : '/open-shifts/review'
+    case 'SHIFT_SWAP_REQUEST':
+      return role === 'ROLE_EMPLOYEE'
+        ? '/shift-swaps'
+        : '/shift-swaps/review'
     case 'ATTENDANCE':
       return role === 'ROLE_EMPLOYEE'
         ? '/attendance'
@@ -44,7 +51,7 @@ export function getNotificationTone(type) {
   if (type.endsWith('_APPROVED') || type === 'SCHEDULE_PUBLISHED') {
     return 'success'
   }
-  if (type.endsWith('_REJECTED')) {
+  if (type.endsWith('_REJECTED') || type.endsWith('_DECLINED')) {
     return 'danger'
   }
   return 'info'

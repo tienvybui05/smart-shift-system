@@ -38,6 +38,38 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
 
     Optional<ShiftAssignment> findByWorkShiftIdAndUserId(Long workShiftId, Long userId);
 
+    @EntityGraph(attributePaths = {
+        "user", "user.role", "user.location", "user.position",
+        "position", "workShift", "workShift.shiftTemplate",
+        "workShift.schedulePeriod", "workShift.schedulePeriod.location"
+    })
+    @Query("SELECT assignment FROM ShiftAssignment assignment WHERE assignment.id = :id")
+    Optional<ShiftAssignment> findDetailedById(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {
+        "user", "user.role", "user.location", "user.position",
+        "position", "workShift", "workShift.shiftTemplate",
+        "workShift.schedulePeriod", "workShift.schedulePeriod.location"
+    })
+    @Query("""
+        SELECT assignment
+        FROM ShiftAssignment assignment
+        WHERE assignment.workShift.schedulePeriod.id = :schedulePeriodId
+          AND assignment.position.id = :positionId
+          AND assignment.user.id <> :requesterUserId
+          AND assignment.status IN :statuses
+          AND assignment.workShift.startAt > :now
+          AND assignment.workShift.status <> com.smartshift.enums.WorkShiftStatus.CANCELLED
+        ORDER BY assignment.workShift.startAt ASC, assignment.user.fullName ASC
+        """)
+    List<ShiftAssignment> findSwapCandidates(
+        @Param("schedulePeriodId") Long schedulePeriodId,
+        @Param("positionId") Long positionId,
+        @Param("requesterUserId") Long requesterUserId,
+        @Param("statuses") Collection<AssignmentStatus> statuses,
+        @Param("now") Instant now
+    );
+
     @Query("SELECT assignment.workShift.id FROM ShiftAssignment assignment WHERE assignment.id = :id")
     Optional<Long> findWorkShiftIdByAssignmentId(@Param("id") Long id);
 

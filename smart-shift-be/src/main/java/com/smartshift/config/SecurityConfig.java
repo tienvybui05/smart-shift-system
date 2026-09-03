@@ -170,6 +170,29 @@ public class SecurityConfig {
                     "/api/open-shift-claims/*/review"
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/shift-swap-requests/me",
+                    "/api/shift-swap-requests/available",
+                    "/api/shift-swap-requests/candidates"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/shift-swap-requests"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/shift-swap-requests/me/*/respond",
+                    "/api/shift-swap-requests/me/*/cancel"
+                ).hasRole("EMPLOYEE")
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/shift-swap-requests"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/shift-swap-requests/*/review"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
                     HttpMethod.POST,
                     "/api/attendances/check-in",
                     "/api/attendances/check-out"
