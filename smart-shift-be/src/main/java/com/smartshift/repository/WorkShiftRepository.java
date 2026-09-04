@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,26 @@ public interface WorkShiftRepository extends JpaRepository<WorkShift, Long> {
     List<WorkShift> search(
         @Param("schedulePeriodId") Long schedulePeriodId,
         @Param("status") WorkShiftStatus status
+    );
+
+    @Query("""
+        SELECT workShift
+        FROM WorkShift workShift
+        JOIN FETCH workShift.schedulePeriod schedulePeriod
+        JOIN FETCH schedulePeriod.location location
+        LEFT JOIN FETCH workShift.shiftTemplate shiftTemplate
+        WHERE (:locationId IS NULL OR location.id = :locationId)
+          AND schedulePeriod.status IN :periodStatuses
+          AND workShift.status <> com.smartshift.enums.WorkShiftStatus.CANCELLED
+          AND workShift.startAt < :rangeEnd
+          AND workShift.endAt > :rangeStart
+        ORDER BY workShift.startAt ASC, location.name ASC
+        """)
+    List<WorkShift> findDashboardShifts(
+        @Param("locationId") Long locationId,
+        @Param("periodStatuses") Collection<SchedulePeriodStatus> periodStatuses,
+        @Param("rangeStart") Instant rangeStart,
+        @Param("rangeEnd") Instant rangeEnd
     );
 
     boolean existsBySchedulePeriodIdAndStartAt(

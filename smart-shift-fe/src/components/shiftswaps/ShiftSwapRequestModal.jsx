@@ -30,15 +30,10 @@ export default function ShiftSwapRequestModal({
 
   useEffect(() => {
     if (type !== 'SWAP' || !requesterAssignmentId) {
-      setCandidates([])
-      setCandidateError('')
-      form.setFieldValue('targetAssignmentId', undefined)
       return undefined
     }
 
     let mounted = true
-    setCandidatesLoading(true)
-    setCandidateError('')
     getShiftSwapCandidates(requesterAssignmentId)
       .then((result) => {
         if (mounted) setCandidates(result)
@@ -60,6 +55,23 @@ export default function ShiftSwapRequestModal({
       mounted = false
     }
   }, [form, requesterAssignmentId, type])
+
+  function handleTypeChange(event) {
+    const nextType = event.target.value
+    setType(nextType)
+    setCandidates([])
+    setCandidateError('')
+    setCandidatesLoading(nextType === 'SWAP' && Boolean(requesterAssignmentId))
+    form.setFieldValue('targetAssignmentId', undefined)
+  }
+
+  function handleRequesterAssignmentChange(value) {
+    setRequesterAssignmentId(value)
+    setCandidates([])
+    setCandidateError('')
+    setCandidatesLoading(type === 'SWAP' && Boolean(value))
+    form.setFieldValue('targetAssignmentId', undefined)
+  }
 
   const selectedAssignment = useMemo(
     () => assignments.find((item) => item.assignmentId === requesterAssignmentId),
@@ -104,7 +116,7 @@ export default function ShiftSwapRequestModal({
         <Form.Item label="Hình thức" name="type">
           <Radio.Group
             buttonStyle="solid"
-            onChange={(event) => setType(event.target.value)}
+            onChange={handleTypeChange}
           >
             <Radio.Button value="GIVEAWAY">Nhường ca</Radio.Button>
             <Radio.Button value="SWAP">Đổi ca</Radio.Button>
@@ -117,7 +129,7 @@ export default function ShiftSwapRequestModal({
           rules={[{ required: true, message: 'Vui lòng chọn ca của bạn.' }]}
         >
           <Select
-            onChange={setRequesterAssignmentId}
+            onChange={handleRequesterAssignmentChange}
             options={assignments.map(assignmentOption)}
             optionFilterProp="label"
             placeholder="Chọn ca muốn đổi hoặc nhường"

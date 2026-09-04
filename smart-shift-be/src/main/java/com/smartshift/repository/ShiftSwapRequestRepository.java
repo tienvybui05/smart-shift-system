@@ -16,6 +16,32 @@ import java.util.Optional;
 
 public interface ShiftSwapRequestRepository extends JpaRepository<ShiftSwapRequest, Long> {
 
+    @Query("""
+        SELECT COUNT(request)
+        FROM ShiftSwapRequest request
+        WHERE request.status IN :statuses
+          AND (
+            request.requesterUser.username = :username
+            OR request.targetUser.username = :username
+          )
+        """)
+    long countMineByStatuses(
+        @Param("username") String username,
+        @Param("statuses") Collection<ShiftSwapStatus> statuses
+    );
+
+    @Query("""
+        SELECT COUNT(request)
+        FROM ShiftSwapRequest request
+        WHERE request.status = :status
+          AND (:locationId IS NULL
+            OR request.requesterAssignment.workShift.schedulePeriod.location.id = :locationId)
+        """)
+    long countByStatusAndScope(
+        @Param("status") ShiftSwapStatus status,
+        @Param("locationId") Long locationId
+    );
+
     @EntityGraph(attributePaths = {
         "requesterUser", "requesterUser.role",
         "requesterAssignment", "requesterAssignment.position",

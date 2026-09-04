@@ -17,6 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    @EntityGraph(attributePaths = {"role", "location", "position"})
+    @Query("SELECT user FROM User user WHERE user.username = :username")
+    Optional<User> findDetailedByUsername(@Param("username") String username);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"role", "location", "position"})
     @Query("SELECT user FROM User user WHERE user.username = :username")
@@ -42,6 +46,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsernameAndActiveTrue(String username);
 
     List<User> findAllByLocationIdAndActiveTrue(Long locationId);
+
+    @Query("""
+        SELECT COUNT(user)
+        FROM User user
+        WHERE user.role.name = 'ROLE_EMPLOYEE'
+          AND user.active = :active
+          AND (:locationId IS NULL OR user.location.id = :locationId)
+        """)
+    long countEmployeesByScopeAndStatus(
+        @Param("locationId") Long locationId,
+        @Param("active") boolean active
+    );
 
     @EntityGraph(attributePaths = {"role", "location"})
     @Query("""

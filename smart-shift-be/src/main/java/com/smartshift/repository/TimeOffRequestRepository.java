@@ -16,6 +16,22 @@ import java.util.Optional;
 
 public interface TimeOffRequestRepository extends JpaRepository<TimeOffRequest, Long> {
 
+    long countByUserUsernameAndStatus(
+        String username,
+        TimeOffStatus status
+    );
+
+    @Query("""
+        SELECT COUNT(request)
+        FROM TimeOffRequest request
+        WHERE request.status = :status
+          AND (:locationId IS NULL OR request.user.location.id = :locationId)
+        """)
+    long countByStatusAndScope(
+        @Param("status") TimeOffStatus status,
+        @Param("locationId") Long locationId
+    );
+
     @EntityGraph(attributePaths = {"user", "user.location", "approvedBy"})
     List<TimeOffRequest> findAllByUserUsernameOrderByCreatedAtDesc(
         String username

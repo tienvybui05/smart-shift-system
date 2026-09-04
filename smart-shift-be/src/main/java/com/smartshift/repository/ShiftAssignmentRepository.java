@@ -34,6 +34,19 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
         @Param("statuses") Collection<AssignmentStatus> statuses
     );
 
+    @EntityGraph(attributePaths = {"user", "position", "workShift"})
+    @Query("""
+        SELECT assignment
+        FROM ShiftAssignment assignment
+        WHERE assignment.workShift.id IN :workShiftIds
+          AND assignment.status IN :statuses
+        ORDER BY assignment.workShift.startAt ASC, assignment.user.fullName ASC
+        """)
+    List<ShiftAssignment> findAllByWorkShiftIdsAndStatusIn(
+        @Param("workShiftIds") Collection<Long> workShiftIds,
+        @Param("statuses") Collection<AssignmentStatus> statuses
+    );
+
     List<ShiftAssignment> findAllByUserIdAndStatus(Long userId, AssignmentStatus status);
 
     Optional<ShiftAssignment> findByWorkShiftIdAndUserId(Long workShiftId, Long userId);

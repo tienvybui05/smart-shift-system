@@ -15,6 +15,23 @@ import java.util.Optional;
 public interface OpenShiftClaimRepository
     extends JpaRepository<OpenShiftClaim, Long> {
 
+    long countByUserUsernameAndStatus(
+        String username,
+        OpenShiftClaimStatus status
+    );
+
+    @Query("""
+        SELECT COUNT(claim)
+        FROM OpenShiftClaim claim
+        WHERE claim.status = :status
+          AND (:locationId IS NULL
+            OR claim.workShift.schedulePeriod.location.id = :locationId)
+        """)
+    long countByStatusAndScope(
+        @Param("status") OpenShiftClaimStatus status,
+        @Param("locationId") Long locationId
+    );
+
     @EntityGraph(attributePaths = {
         "workShift",
         "workShift.schedulePeriod",

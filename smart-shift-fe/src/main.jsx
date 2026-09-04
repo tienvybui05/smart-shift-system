@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')).render(
         token: {
           colorPrimary: '#5b4cf0',
           borderRadius: 10,
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontFamily: '"Segoe UI", Inter, system-ui, -apple-system, sans-serif',
         },
       }}
     >
