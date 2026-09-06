@@ -63,6 +63,9 @@ const ShiftSwapReviewPage = lazy(
 const OpenShiftClaimReviewPage = lazy(
   () => import('./pages/openshifts/OpenShiftClaimReviewPage.jsx'),
 )
+const LarkIntegrationPage = lazy(
+  () => import('./pages/integrations/LarkIntegrationPage.jsx'),
+)
 
 export default function App() {
   return (
@@ -116,6 +119,10 @@ export default function App() {
             </Route>
             <Route element={<AdminOnlyRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />
+              <Route
+                path="admin/integrations/lark"
+                element={<LarkIntegrationPage />}
+              />
             </Route>
           </Route>
         </Route>

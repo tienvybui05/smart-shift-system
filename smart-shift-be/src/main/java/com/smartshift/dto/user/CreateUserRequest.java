@@ -17,10 +17,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record CreateUserRequest(
-    @NotBlank(message = "Mã nhân viên không được để trống")
-    @Size(max = 30, message = "Mã nhân viên không được vượt quá 30 ký tự")
-    String employeeCode,
-
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(max = 50, message = "Tên đăng nhập không được vượt quá 50 ký tự")
     String username,
@@ -48,7 +44,6 @@ public record CreateUserRequest(
     @Positive(message = "Id chi nhánh phải lớn hơn 0")
     Long locationId,
 
-    @NotNull(message = "Vị trí không được để trống")
     @Positive(message = "Id vị trí phải lớn hơn 0")
     Long positionId,
 

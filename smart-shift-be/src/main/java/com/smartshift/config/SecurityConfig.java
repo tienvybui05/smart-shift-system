@@ -128,7 +128,7 @@ public class SecurityConfig {
                 ).hasRole("ADMIN")
                 .requestMatchers(
                     "/api/employee-availabilities/me/**"
-                ).authenticated()
+                ).hasRole("EMPLOYEE")
                 .requestMatchers(
                     "/api/time-off-requests/me",
                     "/api/time-off-requests/me/**"
@@ -226,6 +226,7 @@ public class SecurityConfig {
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
                     "/api/locations/**",
+                    "/api/integrations/lark/**",
                     "/api/positions/**",
                     "/api/roles/**",
                     "/api/users/**"

@@ -16,12 +16,14 @@ public class UserMapper {
 
     public User toEntity(
         CreateUserRequest request,
+        String employeeCode,
         String passwordHash,
         Role role,
         Location location,
         Position position
     ) {
         User user = new User();
+        user.setEmployeeCode(employeeCode);
         user.setPasswordHash(passwordHash);
         user.setActive(request.active());
         updateCommonFields(request, user, role, location, position);
@@ -35,7 +37,6 @@ public class UserMapper {
         Location location,
         Position position
     ) {
-        user.setEmployeeCode(request.employeeCode().trim());
         user.setUsername(normalizeUsername(request.username()));
         user.setFullName(request.fullName().trim());
         user.setEmail(normalizeEmail(request.email()));
@@ -55,6 +56,7 @@ public class UserMapper {
     }
 
     public UserResponse toResponse(User user) {
+        Position position = user.getPosition();
         return new UserResponse(
             user.getId(),
             user.getEmployeeCode(),
@@ -67,9 +69,9 @@ public class UserMapper {
             user.getLocation().getId(),
             user.getLocation().getCode(),
             user.getLocation().getName(),
-            user.getPosition().getId(),
-            user.getPosition().getCode(),
-            user.getPosition().getName(),
+            position == null ? null : position.getId(),
+            position == null ? null : position.getCode(),
+            position == null ? null : position.getName(),
             user.getEmploymentType(),
             user.getHireDate(),
             user.getMinHoursPerWeek(),
@@ -92,7 +94,6 @@ public class UserMapper {
         Location location,
         Position position
     ) {
-        user.setEmployeeCode(request.employeeCode().trim());
         user.setUsername(normalizeUsername(request.username()));
         user.setFullName(request.fullName().trim());
         user.setEmail(normalizeEmail(request.email()));

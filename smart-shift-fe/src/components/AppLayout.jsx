@@ -1,5 +1,6 @@
 import {
   AuditOutlined,
+  ApiOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -104,13 +105,15 @@ function SidebarContent({ role, onNavigate }) {
             <CalendarOutlined /> Lịch làm việc
           </NavLink>
         )}
-        <NavLink
-          className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
-          onClick={onNavigate}
-          to="/availability"
-        >
-          <ClockCircleOutlined /> Lịch rảnh
-        </NavLink>
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_EMPLOYEE') && (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/availability"
+          >
+            <ClockCircleOutlined /> Lịch rảnh
+          </NavLink>
+        )}
         <NavLink
           className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
           end
@@ -206,9 +209,19 @@ function SidebarContent({ role, onNavigate }) {
         >
           <NotificationOutlined /> Thông báo
         </NavLink>
-        <button className="nav-item" type="button" disabled>
-          <SettingOutlined /> Thiết lập
-        </button>
+        {role === 'ROLE_ADMIN' ? (
+          <NavLink
+            className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
+            onClick={onNavigate}
+            to="/admin/integrations/lark"
+          >
+            <ApiOutlined /> Tích hợp Lark
+          </NavLink>
+        ) : (
+          <button className="nav-item" type="button" disabled>
+            <SettingOutlined /> Thiết lập
+          </button>
+        )}
       </nav>
 
       <div className="sidebar-help">

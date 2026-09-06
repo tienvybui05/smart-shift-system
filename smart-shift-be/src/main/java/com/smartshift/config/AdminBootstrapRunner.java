@@ -1,12 +1,10 @@
 package com.smartshift.config;
 
 import com.smartshift.entity.Location;
-import com.smartshift.entity.Position;
 import com.smartshift.entity.Role;
 import com.smartshift.entity.User;
 import com.smartshift.enums.EmploymentType;
 import com.smartshift.repository.LocationRepository;
-import com.smartshift.repository.PositionRepository;
 import com.smartshift.repository.RoleRepository;
 import com.smartshift.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +31,12 @@ public class AdminBootstrapRunner implements ApplicationRunner {
 
     private static final String ADMIN_ROLE = "ROLE_ADMIN";
     private static final String DEFAULT_LOCATION = "STORE_HCM_001";
-    private static final String DEFAULT_POSITION = "SHIFT_MANAGER";
     private static final String ADMIN_EMPLOYEE_CODE = "ADMIN001";
 
     private final BootstrapAdminProperties properties;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final LocationRepository locationRepository;
-    private final PositionRepository positionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -55,9 +51,6 @@ public class AdminBootstrapRunner implements ApplicationRunner {
             .orElseThrow(() -> missingSeedData("role", ADMIN_ROLE));
         Location location = locationRepository.findByCode(DEFAULT_LOCATION)
             .orElseThrow(() -> missingSeedData("location", DEFAULT_LOCATION));
-        Position position = positionRepository.findByCode(DEFAULT_POSITION)
-            .orElseThrow(() -> missingSeedData("position", DEFAULT_POSITION));
-
         User admin = new User();
         admin.setEmployeeCode(ADMIN_EMPLOYEE_CODE);
         admin.setUsername(username);
@@ -65,7 +58,6 @@ public class AdminBootstrapRunner implements ApplicationRunner {
         admin.setFullName("System Administrator");
         admin.setRole(role);
         admin.setLocation(location);
-        admin.setPosition(position);
         admin.setEmploymentType(EmploymentType.FULL_TIME);
         admin.setHireDate(LocalDate.now());
         admin.setMinHoursPerWeek(new BigDecimal("40.00"));

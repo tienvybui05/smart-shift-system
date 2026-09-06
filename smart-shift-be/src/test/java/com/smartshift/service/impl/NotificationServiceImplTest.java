@@ -7,6 +7,7 @@ import com.smartshift.enums.NotificationType;
 import com.smartshift.exception.ResourceNotFoundException;
 import com.smartshift.mapper.NotificationMapper;
 import com.smartshift.repository.NotificationRepository;
+import com.smartshift.service.LarkIntegrationService;
 import com.smartshift.service.NotificationStreamService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,9 @@ class NotificationServiceImplTest {
     @Mock
     private NotificationStreamService notificationStreamService;
 
+    @Mock
+    private LarkIntegrationService larkIntegrationService;
+
     private NotificationServiceImpl service;
 
     @BeforeEach
@@ -49,6 +53,7 @@ class NotificationServiceImplTest {
             notificationRepository,
             new NotificationMapper(),
             notificationStreamService,
+            larkIntegrationService,
             Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }

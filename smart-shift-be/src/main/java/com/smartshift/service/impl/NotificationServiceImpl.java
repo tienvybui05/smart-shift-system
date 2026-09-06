@@ -11,7 +11,9 @@ import com.smartshift.mapper.NotificationMapper;
 import com.smartshift.repository.NotificationRepository;
 import com.smartshift.service.NotificationService;
 import com.smartshift.service.NotificationStreamService;
+import com.smartshift.service.LarkIntegrationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NotificationServiceImpl implements NotificationService {
@@ -31,6 +34,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final NotificationStreamService notificationStreamService;
+    private final LarkIntegrationService larkIntegrationService;
     private final Clock clock;
 
     @Override
@@ -101,8 +105,56 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationResponse response = notificationMapper.toResponse(
             notificationRepository.save(notification)
         );
+        enqueueLarkAfterCommit(
+            recipient,
+            type,
+            title,
+            content,
+            referenceType,
+            referenceId
+        );
         publishAfterCommit(recipient.getUsername(), response);
         return response;
+    }
+
+    private void enqueueLarkAfterCommit(
+        User recipient,
+        NotificationType type,
+        String title,
+        String content,
+        NotificationReferenceType referenceType,
+        Long referenceId
+    ) {
+        Runnable enqueue = () -> {
+            try {
+                larkIntegrationService.enqueueNotification(
+                    recipient,
+                    type,
+                    title,
+                    content,
+                    referenceType,
+                    referenceId
+                );
+            } catch (RuntimeException exception) {
+                log.warn(
+                    "Unable to enqueue Lark notification for user {}",
+                    recipient.getId(),
+                    exception
+                );
+            }
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            enqueue.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    enqueue.run();
+                }
+            }
+        );
     }
 
     @Override

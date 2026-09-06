@@ -16,6 +16,23 @@ server:
   port: 8080
 
 app:
+  integrations:
+    lark:
+      enabled: ${LARK_ENABLED:false}
+      webhook-url: ${LARK_WEBHOOK_URL:}
+      secret: ${LARK_WEBHOOK_SECRET:}
+      app-enabled: ${LARK_APP_ENABLED:false}
+      app-id: ${LARK_APP_ID:}
+      app-secret: ${LARK_APP_SECRET:}
+      api-base-url: ${LARK_API_BASE_URL:https://open.larksuite.com/open-apis}
+      smart-shift-url: ${SMART_SHIFT_PUBLIC_URL:http://localhost:3000}
+      connect-timeout: ${LARK_CONNECT_TIMEOUT:PT5S}
+      request-timeout: ${LARK_REQUEST_TIMEOUT:PT10S}
+      max-attempts: ${LARK_MAX_ATTEMPTS:3}
+      retry-delay: ${LARK_RETRY_DELAY:PT30S}
+      worker:
+        initial-delay-ms: ${LARK_WORKER_INITIAL_DELAY_MS:5000}
+        fixed-delay-ms: ${LARK_WORKER_FIXED_DELAY_MS:5000}
   notifications:
     sse:
       heartbeat-ms: ${NOTIFICATION_SSE_HEARTBEAT_MS:25000}

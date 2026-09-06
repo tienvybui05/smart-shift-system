@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Getter
@@ -48,6 +49,15 @@ public class User extends BaseTimeEntity {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "lark_open_id", unique = true, length = 128)
+    private String larkOpenId;
+
+    @Column(name = "lark_synced_at")
+    private Instant larkSyncedAt;
+
+    @Column(name = "lark_sync_error", length = 500)
+    private String larkSyncError;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -56,8 +66,8 @@ public class User extends BaseTimeEntity {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "position_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "position_id")
     private Position position;
 
     @Enumerated(EnumType.STRING)

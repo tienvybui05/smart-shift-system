@@ -39,14 +39,13 @@ function getDefaultValues() {
 
 function getEditValues(user) {
   return {
-    employeeCode: user.employeeCode,
     username: user.username,
     fullName: user.fullName,
     email: user.email,
     phoneNumber: user.phoneNumber,
     roleId: user.roleId,
     locationId: user.locationId,
-    positionId: user.positionId,
+    positionId: user.roleName === 'ROLE_EMPLOYEE' ? user.positionId : undefined,
     employmentType: user.employmentType,
     hireDate: user.hireDate,
     minHoursPerWeek: Number(user.minHoursPerWeek),
@@ -71,6 +70,10 @@ export default function UserFormDrawer({
   const [messageApi, messageContext] = message.useMessage()
   const [submitting, setSubmitting] = useState(false)
   const editing = Boolean(user)
+  const selectedRoleId = Form.useWatch('roleId', form)
+  const employeeRoleSelected = references.roles.some(
+    (role) => role.id === selectedRoleId && role.name === 'ROLE_EMPLOYEE',
+  )
 
   useEffect(() => {
     if (!open) return
@@ -173,12 +176,11 @@ export default function UserFormDrawer({
 
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item
-                label="Mã nhân viên"
-                name="employeeCode"
-                rules={[{ required: true, message: 'Vui lòng nhập mã nhân viên' }, { max: 30 }]}
-              >
-                <Input placeholder="Ví dụ: NV001" maxLength={30} />
+              <Form.Item label="Mã nhân viên">
+                <Input
+                  disabled
+                  value={editing ? user.employeeCode : 'Tự động tạo sau khi lưu'}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -261,21 +263,32 @@ export default function UserFormDrawer({
                 <Input placeholder="0901234567" maxLength={20} />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={employeeRoleSelected ? 8 : 12}>
               <Form.Item label="Vai trò" name="roleId" rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}>
-                <Select options={roleOptions} placeholder="Chọn vai trò" />
+                <Select
+                  options={roleOptions}
+                  placeholder="Chọn vai trò"
+                  onChange={(roleId) => {
+                    const selectedRole = references.roles.find((role) => role.id === roleId)
+                    if (selectedRole?.name !== 'ROLE_EMPLOYEE') {
+                      form.setFieldValue('positionId', undefined)
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={employeeRoleSelected ? 8 : 12}>
               <Form.Item label="Chi nhánh" name="locationId" rules={[{ required: true, message: 'Vui lòng chọn chi nhánh' }]}>
                 <Select showSearch optionFilterProp="label" options={locationOptions} placeholder="Chọn chi nhánh" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="Vị trí" name="positionId" rules={[{ required: true, message: 'Vui lòng chọn vị trí' }]}>
-                <Select showSearch optionFilterProp="label" options={positionOptions} placeholder="Chọn vị trí" />
-              </Form.Item>
-            </Col>
+            {employeeRoleSelected && (
+              <Col xs={24} md={8}>
+                <Form.Item label="Vị trí" name="positionId" rules={[{ required: true, message: 'Vui lòng chọn vị trí' }]}>
+                  <Select showSearch optionFilterProp="label" options={positionOptions} placeholder="Chọn vị trí" />
+                </Form.Item>
+              </Col>
+            )}
             <Col xs={24} md={12}>
               <Form.Item label="Loại hợp đồng" name="employmentType" rules={[{ required: true, message: 'Vui lòng chọn loại hợp đồng' }]}>
                 <Select options={EMPLOYMENT_TYPE_OPTIONS} />

@@ -2971,6 +2971,167 @@
   margin-top: 14px;
 }
 
+.lark-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lark-channel-alerts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lark-channel-alerts .ant-alert {
+  align-items: flex-start;
+  border-radius: 14px;
+}
+
+.lark-channel-alerts .ant-alert-message {
+  color: #30384c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lark-channel-alerts .ant-alert-description {
+  color: #626a7d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.lark-status-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+}
+
+.lark-status-card__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: #f1f2f6;
+  color: #737b90;
+  font-size: 19px;
+  place-items: center;
+}
+
+.lark-status-card--blue .lark-status-card__icon {
+  background: #edf5ff;
+  color: #397fcf;
+}
+
+.lark-status-card--green .lark-status-card__icon {
+  background: #ebf8f1;
+  color: #249267;
+}
+
+.lark-status-card--red .lark-status-card__icon {
+  background: #fff0ef;
+  color: #d95050;
+}
+
+.lark-status-card > div,
+.lark-event-cell,
+.lark-result-cell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lark-status-card > div > span,
+.lark-status-card > div > small,
+.lark-event-cell span,
+.lark-result-cell span,
+.lark-result-cell small {
+  overflow: hidden;
+  color: #8d93a1;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lark-status-card strong {
+  color: #30384c;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.lark-event-cell strong {
+  overflow: hidden;
+  color: #30384c;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lark-event-cell p {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: #626a7d;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lark-result-cell small {
+  color: #626a7d;
+}
+
+.lark-channel-cell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.lark-channel-cell span {
+  overflow: hidden;
+  width: 100%;
+  color: #777f91;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lark-user-card .ant-table-wrapper,
+.lark-delivery-card .ant-table-wrapper {
+  padding: 0 10px 10px;
+}
+
+@media (max-width: 1050px) {
+  .lark-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .lark-channel-alerts,
+  .lark-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lark-user-card .table-heading,
+  .lark-delivery-card .table-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lark-delivery-card .ant-select {
+    width: 100% !important;
+  }
+}
+
 .form-section-intro {
   display: flex;
   flex-direction: column;

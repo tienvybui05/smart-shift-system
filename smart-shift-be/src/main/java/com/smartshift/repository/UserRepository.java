@@ -15,6 +15,12 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    @Query(value = "SELECT nextval('admin_code_sequence')", nativeQuery = true)
+    Long nextAdminCodeSequenceValue();
+
+    @Query(value = "SELECT nextval('employee_code_sequence')", nativeQuery = true)
+    Long nextEmployeeCodeSequenceValue();
+
     Optional<User> findByUsername(String username);
 
     @EntityGraph(attributePaths = {"role", "location", "position"})
@@ -37,6 +43,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByLarkOpenId(String larkOpenId);
+
     boolean existsByUsername(String username);
 
     boolean existsByEmployeeCode(String employeeCode);
@@ -46,6 +54,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsernameAndActiveTrue(String username);
 
     List<User> findAllByLocationIdAndActiveTrue(Long locationId);
+
+    List<User> findAllByActiveTrueOrderByFullNameAsc();
+
+    long countByActiveTrue();
+
+    long countByActiveTrueAndLarkOpenIdIsNotNull();
+
+    long countByActiveTrueAndLarkSyncErrorIsNotNull();
+
+    @EntityGraph(attributePaths = {"role", "location", "position"})
+    @Query("SELECT user FROM User user ORDER BY user.fullName ASC")
+    Page<User> findAllDetailed(Pageable pageable);
 
     @Query("""
         SELECT COUNT(user)
@@ -123,6 +143,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
         SELECT user
         FROM User user
+        LEFT JOIN user.position position
         WHERE (
             LOWER(user.employeeCode) LIKE CONCAT('%', LOWER(:keyword), '%')
             OR LOWER(user.username) LIKE CONCAT('%', LOWER(:keyword), '%')
@@ -130,7 +151,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             OR LOWER(COALESCE(user.email, '')) LIKE CONCAT('%', LOWER(:keyword), '%')
         )
         AND (:locationId IS NULL OR user.location.id = :locationId)
-        AND (:positionId IS NULL OR user.position.id = :positionId)
+        AND (:positionId IS NULL OR position.id = :positionId)
         AND (:active IS NULL OR user.active = :active)
         """)
     Page<User> search(

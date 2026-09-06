@@ -178,8 +178,8 @@ export default function UserManagementPage() {
       await updateUser(editingUser.id, payload)
       messageApi.success('Đã cập nhật thông tin nhân viên.')
     } else {
-      await createUser(payload)
-      messageApi.success('Đã tạo tài khoản nhân viên.')
+      const createdUser = await createUser(payload)
+      messageApi.success(`Đã tạo tài khoản với mã ${createdUser.employeeCode}.`)
       setPagination((current) => ({ ...current, page: 0 }))
     }
     setLoading(true)
@@ -261,7 +261,7 @@ export default function UserManagementPage() {
       render: (_, user) => (
         <div className="employee-cell employee-cell--normal">
           <strong>{user.locationName}</strong>
-          <span>{user.positionName}</span>
+          <span>{user.positionName || 'Không áp dụng vị trí'}</span>
         </div>
       ),
     },

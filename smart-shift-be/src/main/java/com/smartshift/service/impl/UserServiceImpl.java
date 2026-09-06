@@ -36,6 +36,9 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
+    private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String EMPLOYEE_ROLE = "ROLE_EMPLOYEE";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final LocationRepository locationRepository;
@@ -82,17 +85,18 @@ public class UserServiceImpl implements UserService {
             request.maxHoursPerWeek()
         );
 
-        String employeeCode = request.employeeCode().trim();
         String username = normalizeUsername(request.username());
         String email = normalizeEmail(request.email());
-        validateUniqueFields(employeeCode, username, email, null);
+        validateUniqueFields(username, email, null);
 
         Role role = findRoleById(request.roleId());
         Location location = findActiveLocationById(request.locationId());
-        Position position = findActivePositionById(request.positionId());
+        Position position = resolvePosition(role, request.positionId());
+        String employeeCode = generateEmployeeCode(role);
 
         User user = userMapper.toEntity(
             request,
+            employeeCode,
             passwordEncoder.encode(request.password()),
             role,
             location,
@@ -114,7 +118,6 @@ public class UserServiceImpl implements UserService {
             request.maxHoursPerWeek()
         );
 
-        String employeeCode = request.employeeCode().trim();
         String username = normalizeUsername(request.username());
         String email = normalizeEmail(request.email());
 
@@ -125,12 +128,20 @@ public class UserServiceImpl implements UserService {
             );
         }
 
-        validateUniqueFields(employeeCode, username, email, user);
+        validateUniqueFields(username, email, user);
         Role role = findRoleById(request.roleId());
         Location location = findActiveLocationById(request.locationId());
-        Position position = findActivePositionById(request.positionId());
+        Position position = resolvePosition(role, request.positionId());
 
+        String previousEmail = user.getEmail();
+        String previousPhoneNumber = user.getPhoneNumber();
         userMapper.updateEntity(request, user, role, location, position);
+        if (!Objects.equals(previousEmail, user.getEmail())
+            || !Objects.equals(previousPhoneNumber, user.getPhoneNumber())) {
+            user.setLarkOpenId(null);
+            user.setLarkSyncedAt(null);
+            user.setLarkSyncError(null);
+        }
         return userMapper.toResponse(userRepository.save(user));
     }
 
@@ -189,19 +200,10 @@ public class UserServiceImpl implements UserService {
     }
 
     private void validateUniqueFields(
-        String employeeCode,
         String username,
         String email,
         User currentUser
     ) {
-        boolean employeeCodeChanged = currentUser == null
-            || !currentUser.getEmployeeCode().equals(employeeCode);
-        if (employeeCodeChanged && userRepository.existsByEmployeeCode(employeeCode)) {
-            throw new DuplicateResourceException(
-                "Mã nhân viên '" + employeeCode + "' đã tồn tại"
-            );
-        }
-
         boolean usernameChanged = currentUser == null
             || !currentUser.getUsername().equals(username);
         if (usernameChanged && userRepository.existsByUsername(username)) {
@@ -217,6 +219,31 @@ public class UserServiceImpl implements UserService {
                 "Email '" + email + "' đã tồn tại"
             );
         }
+    }
+
+    private String generateEmployeeCode(Role role) {
+        boolean admin = ADMIN_ROLE.equals(role.getName());
+        Long sequenceValue = admin
+            ? userRepository.nextAdminCodeSequenceValue()
+            : userRepository.nextEmployeeCodeSequenceValue();
+        return String.format(
+            Locale.ROOT,
+            "%s%06d",
+            admin ? "AD" : "NV",
+            sequenceValue
+        );
+    }
+
+    private Position resolvePosition(Role role, Long positionId) {
+        if (!EMPLOYEE_ROLE.equals(role.getName())) {
+            return null;
+        }
+        if (positionId == null) {
+            throw new BusinessRuleException(
+                "Nhân viên phải được gán một vị trí làm việc"
+            );
+        }
+        return findActivePositionById(positionId);
     }
 
     private void validateWorkingHours(BigDecimal minimum, BigDecimal maximum) {
