@@ -124,6 +124,15 @@ public class SecurityConfig {
                 ).authenticated()
                 .requestMatchers(
                     HttpMethod.GET,
+                    "/api/users/**",
+                    "/api/positions/**"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.PATCH,
+                    "/api/users/*/work-profile"
+                ).hasRole("MANAGER")
+                .requestMatchers(
+                    HttpMethod.GET,
                     "/api/employee-availabilities/users/**"
                 ).hasRole("ADMIN")
                 .requestMatchers(
@@ -204,7 +213,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/payroll/me"
-                ).hasRole("EMPLOYEE")
+                ).hasAnyRole("EMPLOYEE", "MANAGER")
                 .requestMatchers(
                     "/api/payroll/**"
                 ).hasAnyRole("ADMIN", "MANAGER")

@@ -5,6 +5,7 @@ import com.smartshift.dto.user.ChangePasswordRequest;
 import com.smartshift.dto.user.CreateUserRequest;
 import com.smartshift.dto.user.ResetPasswordRequest;
 import com.smartshift.dto.user.UpdateUserRequest;
+import com.smartshift.dto.user.UpdateEmployeeWorkProfileRequest;
 import com.smartshift.dto.user.UserResponse;
 import com.smartshift.entity.Location;
 import com.smartshift.entity.Position;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
 
     private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String MANAGER_ROLE = "ROLE_MANAGER";
     private static final String EMPLOYEE_ROLE = "ROLE_EMPLOYEE";
 
     private final UserRepository userRepository;
@@ -53,8 +56,23 @@ public class UserServiceImpl implements UserService {
         String keyword,
         Long locationId,
         Long positionId,
-        Boolean active
+        Boolean active,
+        String currentUsername
     ) {
+        User actor = findUserByUsername(currentUsername);
+        Long effectiveLocationId = locationId;
+        String roleName = null;
+        if (MANAGER_ROLE.equals(actor.getRole().getName())) {
+            Long managerLocationId = actor.getLocation().getId();
+            if (locationId != null && !Objects.equals(locationId, managerLocationId)) {
+                throw new AccessDeniedException(
+                    "Quản lý chỉ được xem nhân viên thuộc chi nhánh của mình"
+                );
+            }
+            effectiveLocationId = managerLocationId;
+            roleName = EMPLOYEE_ROLE;
+        }
+
         PageRequest pageable = PageRequest.of(
             page,
             size,
@@ -63,9 +81,10 @@ public class UserServiceImpl implements UserService {
         String normalizedKeyword = normalizeNullableText(keyword);
         Page<UserResponse> users = userRepository.search(
                 normalizedKeyword == null ? "" : normalizedKeyword,
-                locationId,
+                effectiveLocationId,
                 positionId,
                 active,
+                roleName,
                 pageable
             )
             .map(userMapper::toResponse);
@@ -73,23 +92,42 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getUserById(Long id) {
-        return userMapper.toResponse(findUserById(id));
+    public UserResponse getUserById(Long id, String currentUsername) {
+        User actor = findUserByUsername(currentUsername);
+        User target = findUserById(id);
+        if (MANAGER_ROLE.equals(actor.getRole().getName())
+            && (!EMPLOYEE_ROLE.equals(target.getRole().getName())
+                || !Objects.equals(
+                    actor.getLocation().getId(),
+                    target.getLocation().getId()
+                ))) {
+            throw new AccessDeniedException(
+                "Quản lý chỉ được xem nhân viên thuộc chi nhánh của mình"
+            );
+        }
+        return userMapper.toResponse(target);
     }
 
     @Override
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
-        validateWorkingHours(
-            request.minHoursPerWeek(),
-            request.maxHoursPerWeek()
-        );
-
         String username = normalizeUsername(request.username());
         String email = normalizeEmail(request.email());
         validateUniqueFields(username, email, null);
 
         Role role = findRoleById(request.roleId());
+        validateRoleSpecificFields(
+            role,
+            request.employmentType(),
+            request.hireDate(),
+            request.minHoursPerWeek(),
+            request.maxHoursPerWeek(),
+            request.maxHoursPerDay(),
+            request.minRestHours(),
+            request.maxConsecutiveDays(),
+            request.basePayAmount(),
+            request.salaryCoefficient()
+        );
         Location location = findActiveLocationById(request.locationId());
         Position position = resolvePosition(role, request.positionId());
         String employeeCode = generateEmployeeCode(role);
@@ -113,11 +151,6 @@ public class UserServiceImpl implements UserService {
         String currentUsername
     ) {
         User user = findUserById(id);
-        validateWorkingHours(
-            request.minHoursPerWeek(),
-            request.maxHoursPerWeek()
-        );
-
         String username = normalizeUsername(request.username());
         String email = normalizeEmail(request.email());
 
@@ -130,6 +163,18 @@ public class UserServiceImpl implements UserService {
 
         validateUniqueFields(username, email, user);
         Role role = findRoleById(request.roleId());
+        validateRoleSpecificFields(
+            role,
+            request.employmentType(),
+            request.hireDate(),
+            request.minHoursPerWeek(),
+            request.maxHoursPerWeek(),
+            request.maxHoursPerDay(),
+            request.minRestHours(),
+            request.maxConsecutiveDays(),
+            request.basePayAmount(),
+            request.salaryCoefficient()
+        );
         Location location = findActiveLocationById(request.locationId());
         Position position = resolvePosition(role, request.positionId());
 
@@ -161,6 +206,45 @@ public class UserServiceImpl implements UserService {
 
         user.setActive(active);
         return userMapper.toResponse(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateEmployeeWorkProfile(
+        Long id,
+        UpdateEmployeeWorkProfileRequest request,
+        String currentUsername
+    ) {
+        User manager = findUserByUsername(currentUsername);
+        if (!MANAGER_ROLE.equals(manager.getRole().getName())) {
+            throw new AccessDeniedException(
+                "Chỉ quản lý được cập nhật thông tin công việc của nhân viên"
+            );
+        }
+
+        User employee = findUserById(id);
+        if (!EMPLOYEE_ROLE.equals(employee.getRole().getName())
+            || !Objects.equals(
+                manager.getLocation().getId(),
+                employee.getLocation().getId()
+            )) {
+            throw new AccessDeniedException(
+                "Quản lý chỉ được cập nhật nhân viên thuộc chi nhánh của mình"
+            );
+        }
+
+        validateWorkingHours(
+            request.minHoursPerWeek(),
+            request.maxHoursPerWeek()
+        );
+        employee.setPosition(findActivePositionById(request.positionId()));
+        employee.setEmploymentType(request.employmentType());
+        employee.setMinHoursPerWeek(request.minHoursPerWeek());
+        employee.setMaxHoursPerWeek(request.maxHoursPerWeek());
+        employee.setMaxHoursPerDay(request.maxHoursPerDay());
+        employee.setMinRestHours(request.minRestHours());
+        employee.setMaxConsecutiveDays(request.maxConsecutiveDays());
+        return userMapper.toResponse(userRepository.save(employee));
     }
 
     @Override
@@ -252,6 +336,40 @@ public class UserServiceImpl implements UserService {
                 "Giờ tối thiểu mỗi tuần không được lớn hơn giờ tối đa"
             );
         }
+    }
+
+    private void validateRoleSpecificFields(
+        Role role,
+        com.smartshift.enums.EmploymentType employmentType,
+        java.time.LocalDate hireDate,
+        BigDecimal minHoursPerWeek,
+        BigDecimal maxHoursPerWeek,
+        BigDecimal maxHoursPerDay,
+        BigDecimal minRestHours,
+        Short maxConsecutiveDays,
+        BigDecimal basePayAmount,
+        BigDecimal salaryCoefficient
+    ) {
+        if (ADMIN_ROLE.equals(role.getName())) {
+            return;
+        }
+        if (employmentType == null || hireDate == null
+            || basePayAmount == null || salaryCoefficient == null) {
+            throw new BusinessRuleException(
+                "Vui lòng nhập đầy đủ thông tin hợp đồng và lương"
+            );
+        }
+        if (!EMPLOYEE_ROLE.equals(role.getName())) {
+            return;
+        }
+        if (minHoursPerWeek == null || maxHoursPerWeek == null
+            || maxHoursPerDay == null || minRestHours == null
+            || maxConsecutiveDays == null) {
+            throw new BusinessRuleException(
+                "Vui lòng nhập đầy đủ quy tắc giờ làm của nhân viên"
+            );
+        }
+        validateWorkingHours(minHoursPerWeek, maxHoursPerWeek);
     }
 
     private void validateNewPassword(

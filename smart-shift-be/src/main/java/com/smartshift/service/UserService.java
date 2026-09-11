@@ -5,6 +5,7 @@ import com.smartshift.dto.user.ChangePasswordRequest;
 import com.smartshift.dto.user.CreateUserRequest;
 import com.smartshift.dto.user.ResetPasswordRequest;
 import com.smartshift.dto.user.UpdateUserRequest;
+import com.smartshift.dto.user.UpdateEmployeeWorkProfileRequest;
 import com.smartshift.dto.user.UserResponse;
 
 public interface UserService {
@@ -15,10 +16,11 @@ public interface UserService {
         String keyword,
         Long locationId,
         Long positionId,
-        Boolean active
+        Boolean active,
+        String currentUsername
     );
 
-    UserResponse getUserById(Long id);
+    UserResponse getUserById(Long id, String currentUsername);
 
     UserResponse createUser(CreateUserRequest request);
 
@@ -29,6 +31,12 @@ public interface UserService {
     );
 
     UserResponse updateStatus(Long id, boolean active, String currentUsername);
+
+    UserResponse updateEmployeeWorkProfile(
+        Long id,
+        UpdateEmployeeWorkProfileRequest request,
+        String currentUsername
+    );
 
     void changePassword(String username, ChangePasswordRequest request);
 

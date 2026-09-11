@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,9 @@ public class PayrollServiceImpl implements PayrollService {
 
     private static final int MAX_PERIOD_DAYS = 93;
     private static final BigDecimal MINUTES_PER_HOUR = new BigDecimal("60");
+    private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String MANAGER_ROLE = "ROLE_MANAGER";
+    private static final String EMPLOYEE_ROLE = "ROLE_EMPLOYEE";
 
     private final PayrollRecordRepository payrollRecordRepository;
     private final AttendanceRepository attendanceRepository;
@@ -63,11 +67,13 @@ public class PayrollServiceImpl implements PayrollService {
             username,
             locationId
         );
+        User actor = findUserByUsername(username);
         return payrollRecordRepository.findDetailedByPeriod(
                 effectiveLocationId,
                 startDate,
                 endDate
             ).stream()
+            .filter(record -> isAdmin(actor) || isEmployee(record.getUser()))
             .map(payrollMapper::toResponse)
             .toList();
     }
@@ -108,8 +114,16 @@ public class PayrollServiceImpl implements PayrollService {
                 "Không tìm thấy chi nhánh có id " + locationId
             ));
         User actor = findUserByUsername(username);
-        List<User> employees = userRepository
-            .findActivePayrollEmployeesByLocation(locationId);
+        boolean fullCalendarMonth = isFullCalendarMonth(
+            request.startDate(),
+            request.endDate()
+        );
+        List<User> payrollUsers = userRepository
+            .findActivePayrollUsersByLocation(locationId)
+            .stream()
+            .filter(user -> isEmployee(user)
+                || (isAdmin(actor) && fullCalendarMonth && isManager(user)))
+            .toList();
 
         ZoneId zoneId = ZoneId.of(location.getTimezone());
         Instant rangeStart = request.startDate().atStartOfDay(zoneId).toInstant();
@@ -124,7 +138,7 @@ public class PayrollServiceImpl implements PayrollService {
             )
         );
 
-        for (User employee : employees) {
+        for (User employee : payrollUsers) {
             PayrollRecord record = payrollRecordRepository
                 .findByUserIdAndPeriodStartAndPeriodEnd(
                     employee.getId(),
@@ -140,10 +154,10 @@ public class PayrollServiceImpl implements PayrollService {
             record.setLocation(location);
             record.setPeriodStart(request.startDate());
             record.setPeriodEnd(request.endDate());
-            record.setWorkedMinutes(
-                workedMinutesByUser.getOrDefault(employee.getId(), 0)
-            );
-            record.setHourlyRate(employee.getHourlyRate());
+            record.setWorkedMinutes(isManager(employee)
+                ? 0
+                : workedMinutesByUser.getOrDefault(employee.getId(), 0));
+            record.setBasePayAmount(employee.getBasePayAmount());
             record.setSalaryCoefficient(employee.getSalaryCoefficient());
             record.setCalculatedBy(actor);
             record.setStatus(PayrollStatus.DRAFT);
@@ -175,6 +189,7 @@ public class PayrollServiceImpl implements PayrollService {
             username,
             record.getLocation().getId()
         );
+        requireCanManageRecord(findUserByUsername(username), record);
         requireDraft(record);
 
         record.setBonusAmount(money(request.bonusAmount()));
@@ -194,11 +209,12 @@ public class PayrollServiceImpl implements PayrollService {
             username,
             record.getLocation().getId()
         );
+        User actor = findUserByUsername(username);
+        requireCanManageRecord(actor, record);
         if (record.getStatus() == PayrollStatus.CONFIRMED) {
             return payrollMapper.toResponse(record);
         }
 
-        User actor = findUserByUsername(username);
         record.setStatus(PayrollStatus.CONFIRMED);
         record.setConfirmedBy(actor);
         record.setConfirmedAt(Instant.now());
@@ -238,11 +254,17 @@ public class PayrollServiceImpl implements PayrollService {
     }
 
     private void recalculateAmounts(PayrollRecord record) {
-        BigDecimal hours = BigDecimal.valueOf(record.getWorkedMinutes())
-            .divide(MINUTES_PER_HOUR, 6, RoundingMode.HALF_UP);
-        BigDecimal baseAmount = hours
-            .multiply(record.getHourlyRate())
-            .multiply(record.getSalaryCoefficient());
+        BigDecimal baseAmount;
+        if (isManager(record.getUser())) {
+            baseAmount = record.getBasePayAmount()
+                .multiply(record.getSalaryCoefficient());
+        } else {
+            BigDecimal hours = BigDecimal.valueOf(record.getWorkedMinutes())
+                .divide(MINUTES_PER_HOUR, 6, RoundingMode.HALF_UP);
+            baseAmount = hours
+                .multiply(record.getBasePayAmount())
+                .multiply(record.getSalaryCoefficient());
+        }
         record.setBaseAmount(money(baseAmount));
         record.setTotalAmount(money(
             record.getBaseAmount().add(record.getBonusAmount())
@@ -275,6 +297,31 @@ public class PayrollServiceImpl implements PayrollService {
                 "Bảng lương đã xác nhận nên không thể chỉnh sửa"
             );
         }
+    }
+
+    private void requireCanManageRecord(User actor, PayrollRecord record) {
+        if (isManager(record.getUser()) && !isAdmin(actor)) {
+            throw new BusinessRuleException(
+                "Chỉ Admin được phép cập nhật và xác nhận lương của Manager"
+            );
+        }
+    }
+
+    private boolean isFullCalendarMonth(LocalDate startDate, LocalDate endDate) {
+        return startDate.getDayOfMonth() == 1
+            && endDate.equals(startDate.with(TemporalAdjusters.lastDayOfMonth()));
+    }
+
+    private boolean isAdmin(User user) {
+        return ADMIN_ROLE.equals(user.getRole().getName());
+    }
+
+    private boolean isManager(User user) {
+        return MANAGER_ROLE.equals(user.getRole().getName());
+    }
+
+    private boolean isEmployee(User user) {
+        return EMPLOYEE_ROLE.equals(user.getRole().getName());
     }
 
     private PayrollRecord findRecordForUpdate(Long id) {

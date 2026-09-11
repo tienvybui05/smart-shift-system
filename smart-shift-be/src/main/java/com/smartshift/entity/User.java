@@ -113,12 +113,12 @@ public class User extends BaseTimeEntity {
     private Short maxConsecutiveDays;
 
     @Column(
-        name = "hourly_rate",
+        name = "base_pay_amount",
         nullable = false,
         precision = 12,
         scale = 2
     )
-    private BigDecimal hourlyRate = BigDecimal.ZERO;
+    private BigDecimal basePayAmount = BigDecimal.ZERO;
 
     @Column(
         name = "salary_coefficient",

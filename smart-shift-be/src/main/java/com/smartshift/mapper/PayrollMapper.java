@@ -18,13 +18,19 @@ public class PayrollMapper {
             employee.getId(),
             employee.getEmployeeCode(),
             employee.getFullName(),
-            employee.getPosition().getName(),
+            employee.getRole().getName(),
+            employee.getPosition() == null
+                ? null
+                : employee.getPosition().getName(),
             record.getLocation().getId(),
             record.getLocation().getName(),
             record.getPeriodStart(),
             record.getPeriodEnd(),
             record.getWorkedMinutes(),
-            record.getHourlyRate(),
+            record.getBasePayAmount(),
+            "ROLE_MANAGER".equals(employee.getRole().getName())
+                ? "MONTHLY"
+                : "HOURLY",
             record.getSalaryCoefficient(),
             record.getBaseAmount(),
             record.getBonusAmount(),

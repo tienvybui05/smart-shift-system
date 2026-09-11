@@ -48,8 +48,8 @@ public class PayrollRecord extends BaseTimeEntity {
     @Column(name = "worked_minutes", nullable = false)
     private Integer workedMinutes = 0;
 
-    @Column(name = "hourly_rate", nullable = false, precision = 12, scale = 2)
-    private BigDecimal hourlyRate;
+    @Column(name = "base_pay_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal basePayAmount;
 
     @Column(
         name = "salary_coefficient",

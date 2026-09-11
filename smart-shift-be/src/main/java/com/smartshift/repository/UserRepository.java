@@ -132,10 +132,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
         FROM User user
         WHERE user.location.id = :locationId
           AND user.active = true
-          AND user.role.name = 'ROLE_EMPLOYEE'
+          AND user.role.name IN ('ROLE_EMPLOYEE', 'ROLE_MANAGER')
         ORDER BY user.fullName ASC
         """)
-    List<User> findActivePayrollEmployeesByLocation(
+    List<User> findActivePayrollUsersByLocation(
         @Param("locationId") Long locationId
     );
 
@@ -153,12 +153,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
         AND (:locationId IS NULL OR user.location.id = :locationId)
         AND (:positionId IS NULL OR position.id = :positionId)
         AND (:active IS NULL OR user.active = :active)
+        AND (:roleName IS NULL OR user.role.name = :roleName)
         """)
     Page<User> search(
         @Param("keyword") String keyword,
         @Param("locationId") Long locationId,
         @Param("positionId") Long positionId,
         @Param("active") Boolean active,
+        @Param("roleName") String roleName,
         Pageable pageable
     );
 }

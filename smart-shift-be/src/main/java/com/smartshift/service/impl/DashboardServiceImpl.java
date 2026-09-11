@@ -177,7 +177,7 @@ public class DashboardServiceImpl implements DashboardService {
             .countByUserUsernameAndReadAtIsNull(user.getUsername());
         BigDecimal estimatedPay = moneyForMinutes(
             workedMinutes,
-            user.getHourlyRate(),
+            user.getBasePayAmount(),
             user.getSalaryCoefficient()
         );
 
@@ -560,14 +560,14 @@ public class DashboardServiceImpl implements DashboardService {
         User employee = attendance.getShiftAssignment().getUser();
         return moneyForMinutes(
             workedMinutes(attendance),
-            employee.getHourlyRate(),
+            employee.getBasePayAmount(),
             employee.getSalaryCoefficient()
         );
     }
 
     private BigDecimal moneyForMinutes(
         long minutes,
-        BigDecimal hourlyRate,
+        BigDecimal basePayAmount,
         BigDecimal coefficient
     ) {
         if (minutes <= 0) {
@@ -575,7 +575,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
         return BigDecimal.valueOf(minutes)
             .divide(BigDecimal.valueOf(60), 6, RoundingMode.HALF_UP)
-            .multiply(hourlyRate)
+            .multiply(basePayAmount)
             .multiply(coefficient)
             .setScale(2, RoundingMode.HALF_UP);
     }

@@ -7,12 +7,18 @@ import com.smartshift.entity.Location;
 import com.smartshift.entity.Position;
 import com.smartshift.entity.Role;
 import com.smartshift.entity.User;
+import com.smartshift.enums.EmploymentType;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Locale;
 
 @Component
 public class UserMapper {
+
+    private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String EMPLOYEE_ROLE = "ROLE_EMPLOYEE";
 
     public User toEntity(
         CreateUserRequest request,
@@ -44,15 +50,19 @@ public class UserMapper {
         user.setRole(role);
         user.setLocation(location);
         user.setPosition(position);
-        user.setEmploymentType(request.employmentType());
-        user.setHireDate(request.hireDate());
-        user.setMinHoursPerWeek(request.minHoursPerWeek());
-        user.setMaxHoursPerWeek(request.maxHoursPerWeek());
-        user.setMaxHoursPerDay(request.maxHoursPerDay());
-        user.setMinRestHours(request.minRestHours());
-        user.setMaxConsecutiveDays(request.maxConsecutiveDays());
-        user.setHourlyRate(request.hourlyRate());
-        user.setSalaryCoefficient(request.salaryCoefficient());
+        updateRoleSpecificFields(
+            user,
+            role,
+            request.employmentType(),
+            request.hireDate(),
+            request.minHoursPerWeek(),
+            request.maxHoursPerWeek(),
+            request.maxHoursPerDay(),
+            request.minRestHours(),
+            request.maxConsecutiveDays(),
+            request.basePayAmount(),
+            request.salaryCoefficient()
+        );
     }
 
     public UserResponse toResponse(User user) {
@@ -79,7 +89,7 @@ public class UserMapper {
             user.getMaxHoursPerDay(),
             user.getMinRestHours(),
             user.getMaxConsecutiveDays(),
-            user.getHourlyRate(),
+            user.getBasePayAmount(),
             user.getSalaryCoefficient(),
             user.isActive(),
             user.getCreatedAt(),
@@ -101,15 +111,46 @@ public class UserMapper {
         user.setRole(role);
         user.setLocation(location);
         user.setPosition(position);
-        user.setEmploymentType(request.employmentType());
-        user.setHireDate(request.hireDate());
-        user.setMinHoursPerWeek(request.minHoursPerWeek());
-        user.setMaxHoursPerWeek(request.maxHoursPerWeek());
-        user.setMaxHoursPerDay(request.maxHoursPerDay());
-        user.setMinRestHours(request.minRestHours());
-        user.setMaxConsecutiveDays(request.maxConsecutiveDays());
-        user.setHourlyRate(request.hourlyRate());
-        user.setSalaryCoefficient(request.salaryCoefficient());
+        updateRoleSpecificFields(
+            user,
+            role,
+            request.employmentType(),
+            request.hireDate(),
+            request.minHoursPerWeek(),
+            request.maxHoursPerWeek(),
+            request.maxHoursPerDay(),
+            request.minRestHours(),
+            request.maxConsecutiveDays(),
+            request.basePayAmount(),
+            request.salaryCoefficient()
+        );
+    }
+
+    private void updateRoleSpecificFields(
+        User user,
+        Role role,
+        EmploymentType employmentType,
+        LocalDate hireDate,
+        BigDecimal minHoursPerWeek,
+        BigDecimal maxHoursPerWeek,
+        BigDecimal maxHoursPerDay,
+        BigDecimal minRestHours,
+        Short maxConsecutiveDays,
+        BigDecimal basePayAmount,
+        BigDecimal salaryCoefficient
+    ) {
+        boolean admin = ADMIN_ROLE.equals(role.getName());
+        boolean employee = EMPLOYEE_ROLE.equals(role.getName());
+
+        user.setEmploymentType(admin ? EmploymentType.FULL_TIME : employmentType);
+        user.setHireDate(admin ? LocalDate.now() : hireDate);
+        user.setMinHoursPerWeek(employee ? minHoursPerWeek : BigDecimal.ZERO);
+        user.setMaxHoursPerWeek(employee ? maxHoursPerWeek : new BigDecimal("168"));
+        user.setMaxHoursPerDay(employee ? maxHoursPerDay : new BigDecimal("24"));
+        user.setMinRestHours(employee ? minRestHours : BigDecimal.ZERO);
+        user.setMaxConsecutiveDays(employee ? maxConsecutiveDays : (short) 7);
+        user.setBasePayAmount(admin ? BigDecimal.ZERO : basePayAmount);
+        user.setSalaryCoefficient(admin ? BigDecimal.ONE : salaryCoefficient);
     }
 
     private String normalizeUsername(String username) {

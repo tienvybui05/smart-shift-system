@@ -203,7 +203,7 @@ export default function PayrollManagementPage() {
       render: (_, record) => (
         <div className="employee-cell">
           <strong>{record.employeeName}</strong>
-          <span>{record.employeeCode} · {record.positionName}</span>
+          <span>{record.employeeCode} · {record.positionName || 'Quản lý'}</span>
         </div>
       ),
     },
@@ -224,7 +224,9 @@ export default function PayrollManagementPage() {
       dataIndex: 'workedMinutes',
       width: 115,
       align: 'right',
-      render: (value) => <strong>{formatHours(value)}</strong>,
+      render: (value, record) => <strong>
+        {record.payBasis === 'MONTHLY' ? 'Không áp dụng' : formatHours(value)}
+      </strong>,
     },
     {
       title: 'Đơn giá · hệ số',
@@ -232,13 +234,16 @@ export default function PayrollManagementPage() {
       width: 155,
       render: (_, record) => (
         <div className="employee-cell employee-cell--normal">
-          <strong>{formatCurrency(record.hourlyRate)}/giờ</strong>
+          <strong>
+            {formatCurrency(record.basePayAmount)}
+            {record.payBasis === 'MONTHLY' ? '/tháng' : '/giờ'}
+          </strong>
           <span>Hệ số {Number(record.salaryCoefficient)}</span>
         </div>
       ),
     },
     {
-      title: 'Lương giờ',
+      title: 'Lương cơ sở',
       dataIndex: 'baseAmount',
       width: 135,
       align: 'right',
@@ -344,7 +349,7 @@ export default function PayrollManagementPage() {
       {locationError && <Alert message={locationError} showIcon type="error" />}
       <Alert
         className="payroll-formula-alert"
-        description="Chỉ các lượt chấm công đã được Manager duyệt và có giờ check-out mới được cộng vào giờ thực tế. Bảng đã xác nhận được giữ nguyên để bảo toàn lịch sử."
+        description="Employee tính theo giờ chấm công đã duyệt. Manager nhận lương cố định và chỉ được Admin đưa vào bảng lương khi chọn trọn một tháng. Manager chỉ quản lý lương Employee trong chi nhánh."
         message="Công thức tính lương dự tính"
         showIcon
         type="info"

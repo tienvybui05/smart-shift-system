@@ -8,6 +8,7 @@ import {
 import { Alert, Button, Input, Table, Tag, message } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { getApiErrorMessage } from '../../api/apiError.js'
+import useAuth from '../../hooks/useAuth.js'
 import { getMyPayrollRecords } from '../../services/payrollService.js'
 
 function toDateInputValue(date) {
@@ -42,6 +43,8 @@ function formatCurrency(value) {
 }
 
 export default function MyPayrollPage() {
+  const { user } = useAuth()
+  const isManager = user.role === 'ROLE_MANAGER'
   const defaultRange = getCurrentMonthRange()
   const [messageApi, messageContext] = message.useMessage()
   const [filterInputs, setFilterInputs] = useState(defaultRange)
@@ -110,13 +113,13 @@ export default function MyPayrollPage() {
       title: 'Giờ thực tế',
       dataIndex: 'workedMinutes',
       width: 120,
-      render: (value) => formatHours(value),
+      render: (value) => isManager ? 'Không áp dụng' : formatHours(value),
     },
     {
-      title: 'Đơn giá',
-      dataIndex: 'hourlyRate',
+      title: isManager ? 'Lương tháng' : 'Đơn giá',
+      dataIndex: 'basePayAmount',
       width: 135,
-      render: (value) => `${formatCurrency(value)}/giờ`,
+      render: (value) => `${formatCurrency(value)}${isManager ? '/tháng' : '/giờ'}`,
     },
     {
       title: 'Hệ số',
@@ -126,7 +129,7 @@ export default function MyPayrollPage() {
       render: (value) => Number(value),
     },
     {
-      title: 'Lương giờ',
+      title: 'Lương cơ sở',
       dataIndex: 'baseAmount',
       width: 140,
       align: 'right',
@@ -168,7 +171,9 @@ export default function MyPayrollPage() {
         <div>
           <span className="eyebrow">Thu nhập của tôi</span>
           <h1>Công và lương dự tính</h1>
-          <p>Theo dõi tổng giờ thực tế, đơn giá, hệ số và tiền thưởng trong kỳ.</p>
+          <p>{isManager
+            ? 'Theo dõi lương cố định theo tháng, hệ số và tiền thưởng.'
+            : 'Theo dõi tổng giờ thực tế, đơn giá, hệ số và tiền thưởng trong kỳ.'}</p>
         </div>
         <Button
           icon={<ReloadOutlined />}
@@ -184,8 +189,12 @@ export default function MyPayrollPage() {
 
       <Alert
         className="payroll-formula-alert"
-        description="Số liệu do Manager tổng hợp từ các lượt chấm công đã duyệt. Bảng ở trạng thái dự tính có thể thay đổi cho đến khi được xác nhận."
-        message="Giờ thực tế × đơn giá × hệ số + thưởng"
+        description={isManager
+          ? 'Bảng lương Manager do Admin tính và xác nhận cho trọn tháng.'
+          : 'Số liệu do Manager/Admin tổng hợp từ các lượt chấm công đã duyệt. Bảng dự tính có thể thay đổi trước khi xác nhận.'}
+        message={isManager
+          ? 'Lương tháng × hệ số + thưởng'
+          : 'Giờ thực tế × đơn giá × hệ số + thưởng'}
         showIcon
         type="info"
       />
@@ -217,11 +226,14 @@ export default function MyPayrollPage() {
       <section className="attendance-management-summary-grid">
         <article className="management-card attendance-summary-card">
           <ClockCircleOutlined />
-          <div><span>Tổng giờ</span><strong>{formatHours(summary.workedMinutes)}</strong></div>
+          <div>
+            <span>{isManager ? 'Kỳ lương' : 'Tổng giờ'}</span>
+            <strong>{isManager ? `${records.length} tháng` : formatHours(summary.workedMinutes)}</strong>
+          </div>
         </article>
         <article className="management-card attendance-summary-card">
           <DollarOutlined />
-          <div><span>Lương theo giờ</span><strong>{formatCurrency(summary.baseAmount)}</strong></div>
+          <div><span>Lương cơ sở</span><strong>{formatCurrency(summary.baseAmount)}</strong></div>
         </article>
         <article className="management-card attendance-summary-card">
           <GiftOutlined />

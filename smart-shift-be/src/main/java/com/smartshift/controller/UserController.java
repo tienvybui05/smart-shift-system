@@ -5,6 +5,7 @@ import com.smartshift.dto.user.ChangePasswordRequest;
 import com.smartshift.dto.user.CreateUserRequest;
 import com.smartshift.dto.user.ResetPasswordRequest;
 import com.smartshift.dto.user.UpdateUserRequest;
+import com.smartshift.dto.user.UpdateEmployeeWorkProfileRequest;
 import com.smartshift.dto.user.UserResponse;
 import com.smartshift.dto.user.UserStatusRequest;
 import com.smartshift.service.UserService;
@@ -56,7 +57,9 @@ public class UserController {
         @Positive(message = "Id vị trí phải lớn hơn 0")
         Long positionId,
 
-        @RequestParam(required = false) Boolean active
+        @RequestParam(required = false) Boolean active,
+
+        Authentication authentication
     ) {
         return ResponseEntity.ok(
             userService.getUsers(
@@ -65,14 +68,20 @@ public class UserController {
                 keyword,
                 locationId,
                 positionId,
-                active
+                active,
+                authentication.getName()
             )
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<UserResponse> getUserById(
+        @PathVariable Long id,
+        Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+            userService.getUserById(id, authentication.getName())
+        );
     }
 
     @PostMapping
@@ -104,6 +113,21 @@ public class UserController {
             userService.updateStatus(
                 id,
                 request.active(),
+                authentication.getName()
+            )
+        );
+    }
+
+    @PatchMapping("/{id}/work-profile")
+    public ResponseEntity<UserResponse> updateEmployeeWorkProfile(
+        @PathVariable Long id,
+        @Valid @RequestBody UpdateEmployeeWorkProfileRequest request,
+        Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+            userService.updateEmployeeWorkProfile(
+                id,
+                request,
                 authentication.getName()
             )
         );

@@ -20,6 +20,11 @@ export async function updateUserStatus(id, active) {
   return response.data
 }
 
+export async function updateEmployeeWorkProfile(id, payload) {
+  const response = await httpClient.patch(`/users/${id}/work-profile`, payload)
+  return response.data
+}
+
 export async function resetUserPassword(id, payload) {
   await httpClient.post(`/users/${id}/reset-password`, payload)
 }

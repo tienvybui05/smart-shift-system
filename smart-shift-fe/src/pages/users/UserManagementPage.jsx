@@ -21,14 +21,16 @@ import {
 import { useEffect, useState } from 'react'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import ResetPasswordModal from '../../components/users/ResetPasswordModal.jsx'
+import EmployeeWorkProfileDrawer from '../../components/users/EmployeeWorkProfileDrawer.jsx'
 import UserFormDrawer from '../../components/users/UserFormDrawer.jsx'
 import useAuth from '../../hooks/useAuth.js'
-import { getUserReferences } from '../../services/referenceService.js'
+import { getPositions, getUserReferences } from '../../services/referenceService.js'
 import {
   createUser,
   getUsers,
   resetUserPassword,
   updateUser,
+  updateEmployeeWorkProfile,
   updateUserStatus,
 } from '../../services/userService.js'
 
@@ -72,6 +74,7 @@ function getRoleLabel(roleName) {
 
 export default function UserManagementPage() {
   const { user: currentUser } = useAuth()
+  const isAdmin = currentUser?.role === 'ROLE_ADMIN'
   const [messageApi, messageContext] = message.useMessage()
   const [pageData, setPageData] = useState(EMPTY_PAGE)
   const [references, setReferences] = useState(EMPTY_REFERENCES)
@@ -95,7 +98,11 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     let active = true
-    getUserReferences()
+    const request = isAdmin
+      ? getUserReferences()
+      : getPositions().then((positions) => ({ ...EMPTY_REFERENCES, positions }))
+
+    request
       .then((result) => {
         if (active) setReferences(result)
       })
@@ -111,7 +118,7 @@ export default function UserManagementPage() {
     return () => {
       active = false
     }
-  }, [referenceRefreshKey])
+  }, [isAdmin, referenceRefreshKey])
 
   useEffect(() => {
     let active = true
@@ -174,6 +181,13 @@ export default function UserManagementPage() {
   }
 
   async function handleSaveUser(payload) {
+    if (!isAdmin) {
+      await updateEmployeeWorkProfile(editingUser.id, payload)
+      messageApi.success('Đã cập nhật thông tin công việc của nhân viên.')
+      setLoading(true)
+      setRefreshKey((current) => current + 1)
+      return
+    }
     if (editingUser) {
       await updateUser(editingUser.id, payload)
       messageApi.success('Đã cập nhật thông tin nhân viên.')
@@ -278,7 +292,9 @@ export default function UserManagementPage() {
       width: 100,
       align: 'center',
       responsive: ['xl'],
-      render: (_, user) => `${Number(user.minHoursPerWeek)}–${Number(user.maxHoursPerWeek)}`,
+      render: (_, user) => user.roleName === 'ROLE_EMPLOYEE'
+        ? `${Number(user.minHoursPerWeek)}–${Number(user.maxHoursPerWeek)}`
+        : 'Không áp dụng',
     },
     {
       title: 'Đơn giá · hệ số',
@@ -287,8 +303,14 @@ export default function UserManagementPage() {
       responsive: ['xl'],
       render: (_, user) => (
         <div className="employee-cell employee-cell--normal">
-          <strong>{new Intl.NumberFormat('vi-VN').format(Number(user.hourlyRate || 0))} đ/giờ</strong>
-          <span>Hệ số {Number(user.salaryCoefficient || 1)}</span>
+          <strong>
+            {user.roleName === 'ROLE_ADMIN'
+              ? 'Không áp dụng'
+              : `${new Intl.NumberFormat('vi-VN').format(Number(user.basePayAmount || 0))} ${user.roleName === 'ROLE_MANAGER' ? 'đ/tháng' : 'đ/giờ'}`}
+          </strong>
+          {user.roleName !== 'ROLE_ADMIN' && (
+            <span>Hệ số {Number(user.salaryCoefficient || 1)}</span>
+          )}
         </div>
       ),
     },
@@ -307,6 +329,13 @@ export default function UserManagementPage() {
       width: 135,
       align: 'center',
       render: (_, user) => {
+        if (!isAdmin) {
+          return (
+            <Tooltip title="Cập nhật công việc">
+              <Button type="text" icon={<EditOutlined />} onClick={() => openEditDrawer(user)} />
+            </Tooltip>
+          )
+        }
         const isCurrentAccount = user.id === currentUser.id
         return (
           <Space size={2}>
@@ -341,25 +370,29 @@ export default function UserManagementPage() {
         )
       },
     },
-  ]
+  ].filter(Boolean)
 
   return (
     <>
       {messageContext}
       <section className="page-heading">
         <div>
-          <span className="eyebrow">Quản trị hệ thống</span>
-          <h1>Quản lý nhân viên</h1>
-          <p>Tạo tài khoản, phân công chi nhánh, vị trí và cấu hình giới hạn giờ làm.</p>
+          <span className="eyebrow">{isAdmin ? 'Quản trị hệ thống' : 'Chi nhánh của tôi'}</span>
+          <h1>{isAdmin ? 'Quản lý nhân viên' : 'Thông tin nhân viên'}</h1>
+          <p>{isAdmin
+            ? 'Tạo tài khoản, phân công chi nhánh, vị trí và cấu hình giới hạn giờ làm.'
+            : 'Theo dõi hồ sơ và quy tắc làm việc của nhân viên thuộc chi nhánh bạn quản lý.'}</p>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={openCreateDrawer}
-          disabled={referencesLoading || Boolean(referenceError)}
-        >
-          Thêm nhân viên
-        </Button>
+        {isAdmin && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateDrawer}
+            disabled={referencesLoading || Boolean(referenceError)}
+          >
+            Thêm nhân viên
+          </Button>
+        )}
       </section>
 
       {referenceError && (
@@ -381,19 +414,21 @@ export default function UserManagementPage() {
           placeholder="Mã nhân viên, tên đăng nhập, họ tên hoặc email"
           value={searchText}
         />
-        <Select
-          allowClear
-          loading={referencesLoading}
-          onChange={(value) => applyFilter('locationId', value)}
-          options={references.locations.map((location) => ({
-            label: `${location.code} — ${location.name}`,
-            value: location.id,
-          }))}
-          placeholder="Tất cả chi nhánh"
-          showSearch
-          optionFilterProp="label"
-          value={filters.locationId}
-        />
+        {isAdmin && (
+          <Select
+            allowClear
+            loading={referencesLoading}
+            onChange={(value) => applyFilter('locationId', value)}
+            options={references.locations.map((location) => ({
+              label: `${location.code} — ${location.name}`,
+              value: location.id,
+            }))}
+            placeholder="Tất cả chi nhánh"
+            showSearch
+            optionFilterProp="label"
+            value={filters.locationId}
+          />
+        )}
         <Select
           allowClear
           loading={referencesLoading}
@@ -424,7 +459,7 @@ export default function UserManagementPage() {
         <div className="table-heading">
           <div>
             <strong>Danh sách nhân viên</strong>
-            <span>{pageData.totalElements} tài khoản trong hệ thống</span>
+            <span>{pageData.totalElements} {isAdmin ? 'tài khoản trong hệ thống' : 'nhân viên thuộc chi nhánh'}</span>
           </div>
           <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
             Làm mới
@@ -448,21 +483,34 @@ export default function UserManagementPage() {
         />
       </section>
 
-      <UserFormDrawer
-        open={drawerOpen}
-        user={editingUser}
-        references={references}
-        usernameLocked={editingUser?.id === currentUser.id}
-        onClose={() => setDrawerOpen(false)}
-        onSubmit={handleSaveUser}
-      />
+      {isAdmin && (
+        <>
+          <UserFormDrawer
+            open={drawerOpen}
+            user={editingUser}
+            references={references}
+            usernameLocked={editingUser?.id === currentUser.id}
+            onClose={() => setDrawerOpen(false)}
+            onSubmit={handleSaveUser}
+          />
 
-      <ResetPasswordModal
-        open={Boolean(resetPasswordUser)}
-        user={resetPasswordUser}
-        onClose={() => setResetPasswordUser(null)}
-        onSubmit={handleResetPassword}
-      />
+          <ResetPasswordModal
+            open={Boolean(resetPasswordUser)}
+            user={resetPasswordUser}
+            onClose={() => setResetPasswordUser(null)}
+            onSubmit={handleResetPassword}
+          />
+        </>
+      )}
+      {!isAdmin && (
+        <EmployeeWorkProfileDrawer
+          open={drawerOpen}
+          user={editingUser}
+          positions={references.positions}
+          onClose={() => setDrawerOpen(false)}
+          onSubmit={handleSaveUser}
+        />
+      )}
     </>
   )
 }

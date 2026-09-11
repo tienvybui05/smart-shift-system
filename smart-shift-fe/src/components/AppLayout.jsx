@@ -69,7 +69,7 @@ function SidebarContent({ role, onNavigate }) {
             <PlusCircleOutlined /> Ca trống
           </NavLink>
         )}
-        {role === 'ROLE_ADMIN' && (
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_MANAGER') && (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
             onClick={onNavigate}
@@ -174,15 +174,16 @@ function SidebarContent({ role, onNavigate }) {
             <ClockCircleOutlined /> Quản lý chấm công
           </NavLink>
         )}
-        {role === 'ROLE_EMPLOYEE' ? (
+        {(role === 'ROLE_EMPLOYEE' || role === 'ROLE_MANAGER') && (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
             onClick={onNavigate}
             to="/payroll"
           >
-            <DollarOutlined /> Công và lương
+            <DollarOutlined /> Lương của tôi
           </NavLink>
-        ) : (
+        )}
+        {(role === 'ROLE_ADMIN' || role === 'ROLE_MANAGER') && (
           <NavLink
             className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`}
             onClick={onNavigate}

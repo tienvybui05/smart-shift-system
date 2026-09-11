@@ -4,6 +4,7 @@ import AdminOrManagerRoute from './components/AdminOrManagerRoute.jsx'
 import AdminOnlyRoute from './components/AdminOnlyRoute.jsx'
 import AppLoading from './components/AppLoading.jsx'
 import EmployeeOnlyRoute from './components/EmployeeOnlyRoute.jsx'
+import EmployeeOrManagerRoute from './components/EmployeeOrManagerRoute.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import PublicOnlyRoute from './components/PublicOnlyRoute.jsx'
 import './App.css'
@@ -85,8 +86,10 @@ export default function App() {
             <Route element={<EmployeeOnlyRoute />}>
               <Route path="open-shifts" element={<MyOpenShiftsPage />} />
               <Route path="attendance" element={<MyAttendancePage />} />
-              <Route path="payroll" element={<MyPayrollPage />} />
               <Route path="shift-swaps" element={<MyShiftSwapsPage />} />
+            </Route>
+            <Route element={<EmployeeOrManagerRoute />}>
+              <Route path="payroll" element={<MyPayrollPage />} />
             </Route>
             <Route element={<AdminOrManagerRoute />}>
               <Route
@@ -117,8 +120,10 @@ export default function App() {
                 element={<WorkShiftManagementPage />}
               />
             </Route>
-            <Route element={<AdminOnlyRoute />}>
+            <Route element={<AdminOrManagerRoute />}>
               <Route path="admin/employees" element={<UserManagementPage />} />
+            </Route>
+            <Route element={<AdminOnlyRoute />}>
               <Route
                 path="admin/integrations/lark"
                 element={<LarkIntegrationPage />}

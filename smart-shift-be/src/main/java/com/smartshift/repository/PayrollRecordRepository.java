@@ -18,7 +18,7 @@ public interface PayrollRecordRepository
         SELECT record
         FROM PayrollRecord record
         JOIN FETCH record.user employee
-        JOIN FETCH employee.position position
+        LEFT JOIN FETCH employee.position position
         JOIN FETCH record.location location
         JOIN FETCH record.calculatedBy calculatedBy
         LEFT JOIN FETCH record.confirmedBy confirmedBy
@@ -37,7 +37,7 @@ public interface PayrollRecordRepository
         SELECT record
         FROM PayrollRecord record
         JOIN FETCH record.user employee
-        JOIN FETCH employee.position position
+        LEFT JOIN FETCH employee.position position
         JOIN FETCH record.location location
         JOIN FETCH record.calculatedBy calculatedBy
         LEFT JOIN FETCH record.confirmedBy confirmedBy
@@ -63,7 +63,7 @@ public interface PayrollRecordRepository
         SELECT record
         FROM PayrollRecord record
         JOIN FETCH record.user employee
-        JOIN FETCH employee.position position
+        LEFT JOIN FETCH employee.position position
         JOIN FETCH record.location location
         JOIN FETCH record.calculatedBy calculatedBy
         LEFT JOIN FETCH record.confirmedBy confirmedBy
