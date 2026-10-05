@@ -7,6 +7,10 @@ import com.smartshift.security.RestAuthenticationEntryPoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -35,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 @EnableMethodSecurity
 @EnableConfigurationProperties({JwtProperties.class, BootstrapAdminProperties.class})
 public class SecurityConfig {
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -117,6 +120,11 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(
+                      "/actuator/**",
+                      "/error"
+                  ).permitAll()
+                
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(
                     HttpMethod.PATCH,
@@ -257,3 +265,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

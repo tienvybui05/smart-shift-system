@@ -1,0 +1,39 @@
+name: Frontend CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'smart-shift-fe/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'smart-shift-fe/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: './smart-shift-fe/package-lock.json'
+        
+    - name: Install Dependencies
+      working-directory: ./smart-shift-fe
+      run: npm ci
+      
+    - name: Run Linter
+      working-directory: ./smart-shift-fe
+      run: npm run lint --if-present
+      
+    - name: Build Project
+      working-directory: ./smart-shift-fe
+      run: npm run build

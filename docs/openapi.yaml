@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Smart Shift System API
+  description: API Documentation cho Hệ thống Quản lý Nhân sự và Tối ưu hóa Lịch làm việc (Smart Shift System)
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /api/auth/login:
+    post:
+      summary: Đăng nhập
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: Admin@123456
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /actuator/health:
+    get:
+      summary: Kiểm tra sức khỏe hệ thống
+      security: []
+      responses:
+        '200':
+          description: Hệ thống hoạt động tốt

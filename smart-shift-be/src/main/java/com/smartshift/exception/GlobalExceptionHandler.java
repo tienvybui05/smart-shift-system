@@ -178,7 +178,7 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error at {}", request.getRequestURI(), exception);
         return buildResponse(
             HttpStatus.INTERNAL_SERVER_ERROR,
-            "Hệ thống gặp lỗi, vui lòng thử lại sau",
+            "" + exception.getClass().getName() + " - " + exception.getMessage() + "",
             request.getRequestURI(),
             Map.of()
         );
