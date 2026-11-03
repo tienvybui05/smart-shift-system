@@ -30,6 +30,10 @@ export function getNotificationTarget(item, role) {
       return role === 'ROLE_EMPLOYEE'
         ? '/payroll'
         : '/payroll/manage'
+    case 'EMPLOYEE_DEVICE':
+      return role === 'ROLE_EMPLOYEE'
+        ? '/attendance'
+        : '/attendance/manage?tab=devices'
     default:
       return null
   }
@@ -51,8 +55,11 @@ export function getNotificationTone(type) {
   if (type.endsWith('_APPROVED') || type === 'SCHEDULE_PUBLISHED') {
     return 'success'
   }
-  if (type.endsWith('_REJECTED') || type.endsWith('_DECLINED')) {
+  if (type.endsWith('_REJECTED') || type.endsWith('_DECLINED') || type === 'DEVICE_REVOKED') {
     return 'danger'
+  }
+  if (type === 'DEVICE_REGISTERED') {
+    return 'warning'
   }
   return 'info'
 }

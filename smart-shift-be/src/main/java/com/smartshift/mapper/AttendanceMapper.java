@@ -57,7 +57,13 @@ public class AttendanceMapper {
             approvedBy == null ? null : approvedBy.getFullName(),
             attendance.getApprovedAt(),
             attendance.getCreatedAt(),
-            attendance.getUpdatedAt()
+            attendance.getUpdatedAt(),
+            attendance.isUnverifiedDevice(),
+            attendance.getCheckInIpAddress(),
+            attendance.getCheckInWifiSsid(),
+            attendance.getCheckOutIpAddress(),
+            attendance.getCheckOutWifiSsid(),
+            attendance.isUnverifiedWifi()
         );
     }
 

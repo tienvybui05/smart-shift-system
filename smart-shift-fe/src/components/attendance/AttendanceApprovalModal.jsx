@@ -112,6 +112,30 @@ export default function AttendanceApprovalModal({
           </div>
         </div>
 
+        {(attendance?.unverifiedDevice || attendance?.unverifiedWifi) && (
+          <Alert
+            className="attendance-approval-alert"
+            description={
+              <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {attendance.unverifiedDevice && (
+                  <div>
+                    • <strong>Thiết bị chưa duyệt:</strong> Ca làm này được chấm công từ thiết bị mới/chưa được phê duyệt.
+                  </div>
+                )}
+                {attendance.unverifiedWifi && (
+                  <div>
+                    • <strong>Không khớp Wi-Fi chi nhánh:</strong> Ghi nhận IP <code>{attendance.checkInIpAddress || '—'}</code>
+                    {attendance.checkInWifiSsid ? ` · Tên Wi-Fi: "${attendance.checkInWifiSsid}"` : ''}.
+                  </div>
+                )}
+              </div>
+            }
+            message="Cảnh báo phát hiện bất thường"
+            showIcon
+            type="warning"
+          />
+        )}
+
         <Alert
           className="attendance-approval-alert"
           message="Thời gian điều chỉnh được hiểu theo múi giờ trên thiết bị đang duyệt."

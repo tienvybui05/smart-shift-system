@@ -230,6 +230,18 @@ public class SecurityConfig {
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
                     HttpMethod.GET,
+                    "/api/employee-devices/me"
+                ).authenticated()
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/employee-devices"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.PUT,
+                    "/api/employee-devices/*/review"
+                ).hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers(
+                    HttpMethod.GET,
                     "/api/positions/**"
                 ).hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(

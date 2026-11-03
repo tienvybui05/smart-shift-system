@@ -9,6 +9,8 @@ import {
   FileTextOutlined,
   HistoryOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MenuOutlined,
   NotificationOutlined,
   PlusCircleOutlined,
@@ -237,6 +239,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   function handleLogout() {
     logout()
@@ -263,8 +266,8 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
+    <div className={`dashboard-shell${sidebarOpen ? ' sidebar-is-open' : ''}`}>
+      <aside className={`dashboard-sidebar${sidebarOpen ? ' sidebar-visible' : ''}`}>
         <SidebarContent role={user.role} />
       </aside>
 
@@ -289,6 +292,13 @@ export default function AppLayout() {
               icon={<MenuOutlined />}
               aria-label="Mở menu"
               onClick={() => setMobileMenuOpen(true)}
+            />
+            <Button
+              className="sidebar-toggle-button"
+              type="text"
+              icon={sidebarOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+              aria-label={sidebarOpen ? 'Ẩn sidebar' : 'Hiện sidebar'}
+              onClick={() => setSidebarOpen((v) => !v)}
             />
             <span className="header-date">
               {new Intl.DateTimeFormat('vi-VN', {

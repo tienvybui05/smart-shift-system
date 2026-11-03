@@ -137,11 +137,12 @@ public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment
     );
 
     @Query("""
-        SELECT DISTINCT assignment.user
+        SELECT DISTINCT u
         FROM ShiftAssignment assignment
+        JOIN assignment.user u
         WHERE assignment.workShift.schedulePeriod.id = :schedulePeriodId
           AND assignment.status IN :statuses
-        ORDER BY assignment.user.id ASC
+        ORDER BY u.id ASC
         """)
     List<User> findDistinctAssignedUsersBySchedulePeriodId(
         @Param("schedulePeriodId") Long schedulePeriodId,

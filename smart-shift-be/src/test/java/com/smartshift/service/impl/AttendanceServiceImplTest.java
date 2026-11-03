@@ -18,6 +18,7 @@ import com.smartshift.mapper.AttendanceMapper;
 import com.smartshift.repository.AttendanceRepository;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.UserRepository;
+import com.smartshift.service.EmployeeDeviceService;
 import com.smartshift.service.SchedulingAccessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,9 @@ class AttendanceServiceImplTest {
     @Mock
     private SchedulingAccessService schedulingAccessService;
 
+    @Mock
+    private EmployeeDeviceService employeeDeviceService;
+
     private AttendanceServiceImpl attendanceService;
 
     @BeforeEach
@@ -71,6 +75,7 @@ class AttendanceServiceImplTest {
             shiftAssignmentRepository,
             userRepository,
             schedulingAccessService,
+            employeeDeviceService,
             new AttendanceMapper(),
             Clock.fixed(NOW, ZoneOffset.UTC)
         );
@@ -262,6 +267,57 @@ class AttendanceServiceImplTest {
         assertTrue(exception.getMessage().contains("93 ngày"));
     }
 
+    @Test
+    void checkInWithWifiRequired_MatchingSsid_SetsUnverifiedWifiFalse() {
+        ShiftAssignment assignment = assignment(NOW, NOW.plusSeconds(8 * 60 * 60));
+        Location location = assignment.getWorkShift().getSchedulePeriod().getLocation();
+        location.setWifiRequired(true);
+        location.setWifiSsid("SmartShift_Q1");
+        stubNewAttendance(assignment);
+
+        AttendanceGpsRequest request = new AttendanceGpsRequest(
+            ASSIGNMENT_ID,
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE,
+            new BigDecimal("15.00"),
+            "fp-device-test-123",
+            "Chrome on Windows",
+            null,
+            "SmartShift_Q1",
+            null
+        );
+
+        var response = attendanceService.checkIn("employee", request, "192.168.1.50");
+        org.junit.jupiter.api.Assertions.assertFalse(response.unverifiedWifi());
+        assertEquals("SmartShift_Q1", response.checkInWifiSsid());
+        assertEquals("192.168.1.50", response.checkInIpAddress());
+    }
+
+    @Test
+    void checkInWithWifiRequired_MismatchSsidAndIp_SetsUnverifiedWifiTrue() {
+        ShiftAssignment assignment = assignment(NOW, NOW.plusSeconds(8 * 60 * 60));
+        Location location = assignment.getWorkShift().getSchedulePeriod().getLocation();
+        location.setWifiRequired(true);
+        location.setWifiSsid("SmartShift_Q1");
+        location.setAllowedIpAddress("118.69.182.10");
+        stubNewAttendance(assignment);
+
+        AttendanceGpsRequest request = new AttendanceGpsRequest(
+            ASSIGNMENT_ID,
+            LOCATION_LATITUDE,
+            LOCATION_LONGITUDE,
+            new BigDecimal("15.00"),
+            "fp-device-test-123",
+            "Chrome on Windows",
+            null,
+            "Cafe_Free_Wifi",
+            null
+        );
+
+        var response = attendanceService.checkIn("employee", request, "14.161.20.5");
+        assertTrue(response.unverifiedWifi());
+    }
+
     private void stubNewAttendance(ShiftAssignment assignment) {
         when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
             .thenReturn(Optional.of(assignment));
@@ -284,7 +340,12 @@ class AttendanceServiceImplTest {
             ASSIGNMENT_ID,
             latitude,
             longitude,
-            new BigDecimal(accuracyMeters)
+            new BigDecimal(accuracyMeters),
+            "fp-device-test-123",
+            "Chrome on Windows",
+            null,
+            null,
+            null
         );
     }
 

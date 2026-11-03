@@ -3,12 +3,15 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   EnvironmentOutlined,
+  InfoCircleOutlined,
   LoginOutlined,
   LogoutOutlined,
+  MobileOutlined,
   ReloadOutlined,
   WarningOutlined,
+  WifiOutlined,
 } from '@ant-design/icons'
-import { Alert, Button, Empty, Input, Table, Tag, message } from 'antd'
+import { Alert, Button, Empty, Input, Modal, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import {
@@ -16,7 +19,9 @@ import {
   checkOut,
   getMyAttendances,
 } from '../../services/attendanceService.js'
+import { getMyDevices } from '../../services/employeeDeviceService.js'
 import { getMyWorkSchedule } from '../../services/myScheduleService.js'
+import { getDeviceFingerprint, getDeviceLabel } from '../../utils/deviceFingerprint.js'
 
 const ATTENDANCE_STATUS_CONFIG = {
   PRESENT: { label: 'Đúng giờ', color: 'success' },
@@ -155,6 +160,14 @@ export default function MyAttendancePage() {
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [actionKey, setActionKey] = useState(null)
+  const [deviceModalOpen, setDeviceModalOpen] = useState(false)
+  const [myDevices, setMyDevices] = useState([])
+  const [devicesLoading, setDevicesLoading] = useState(false)
+  const [explanationModalOpen, setExplanationModalOpen] = useState(false)
+  const [explanationShift, setExplanationShift] = useState(null)
+  const [explanationAction, setExplanationAction] = useState('check-in')
+  const [deviceExplanation, setDeviceExplanation] = useState('')
+  const [inputWifiSsid, setInputWifiSsid] = useState(() => localStorage.getItem('smartshift_last_wifi') || '')
   const [lastPosition, setLastPosition] = useState(null)
 
   useEffect(() => {
@@ -242,16 +255,52 @@ export default function MyAttendancePage() {
     setRefreshKey((current) => current + 1)
   }
 
-  async function handleAttendanceAction(shift, action) {
+  function openMyDevicesModal() {
+    setDeviceModalOpen(true)
+    setDevicesLoading(true)
+    getMyDevices()
+      .then(setMyDevices)
+      .catch((err) => {
+        messageApi.error(getApiErrorMessage(err, 'Không thể tải danh sách thiết bị.'))
+      })
+      .finally(() => setDevicesLoading(false))
+  }
+
+  function startExplanationFlow(shift, action) {
+    setExplanationShift(shift)
+    setExplanationAction(action)
+    setDeviceExplanation('')
+    setExplanationModalOpen(true)
+  }
+
+  async function submitWithExplanation() {
+    if (!explanationShift) return
+    const shift = explanationShift
+    const action = explanationAction
+    const expl = deviceExplanation
+    const wifi = inputWifiSsid.trim()
+    if (wifi) {
+      try { localStorage.setItem('smartshift_last_wifi', wifi) } catch {}
+    }
+    setExplanationModalOpen(false)
+    await handleAttendanceAction(shift, action, expl, wifi)
+  }
+
+  async function handleAttendanceAction(shift, action, explanation = null, wifi = null) {
     const currentActionKey = `${shift.assignmentId}-${action}`
     setActionKey(currentActionKey)
     try {
       const position = await getCurrentPosition()
+      const effectiveWifi = wifi || inputWifiSsid.trim() || undefined
       const positionPayload = {
         shiftAssignmentId: shift.assignmentId,
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracyMeters: position.coords.accuracy,
+        deviceFingerprint: getDeviceFingerprint(),
+        deviceLabel: getDeviceLabel(),
+        deviceExplanation: explanation ? explanation.trim() : undefined,
+        wifiSsid: effectiveWifi,
       }
       setLastPosition({
         accuracy: position.coords.accuracy,
@@ -272,9 +321,29 @@ export default function MyAttendancePage() {
       if (result.workDate >= startDate && result.workDate <= endDate) {
         setAttendances(replaceAttendance)
       }
-      messageApi.success(action === 'check-in'
-        ? `Check-in thành công lúc ${formatInstant(result.checkInAt, result.timezone)}.`
-        : `Check-out thành công lúc ${formatInstant(result.checkOutAt, result.timezone)}.`)
+
+      if (result.unverifiedDevice && result.unverifiedWifi) {
+        messageApi.warning(
+          `Chấm công thành công! Cảnh báo: Thiết bị mới và Mạng Wi-Fi chưa được xác thực với chi nhánh. Quản lý sẽ đối soát bản công này.`,
+          8,
+        )
+      } else if (result.unverifiedWifi) {
+        messageApi.warning(
+          `Chấm công thành công! Cảnh báo: Bạn đang không kết nối đúng Wi-Fi của chi nhánh. Quản lý sẽ đối soát bản công này.`,
+          7,
+        )
+      } else if (result.unverifiedDevice) {
+        messageApi.warning(
+          action === 'check-in'
+            ? `Check-in thành công lúc ${formatInstant(result.checkInAt, result.timezone)}. Thiết bị này đang chờ Quản lý duyệt.`
+            : `Check-out thành công lúc ${formatInstant(result.checkOutAt, result.timezone)}. Thiết bị này đang chờ Quản lý duyệt.`,
+          7,
+        )
+      } else {
+        messageApi.success(action === 'check-in'
+          ? `Check-in thành công lúc ${formatInstant(result.checkInAt, result.timezone)}.`
+          : `Check-out thành công lúc ${formatInstant(result.checkOutAt, result.timezone)}.`)
+      }
     } catch (error) {
       if (error?.response) {
         messageApi.error(getApiErrorMessage(error, 'Không thể thực hiện chấm công.'))
@@ -342,9 +411,23 @@ export default function MyAttendancePage() {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
-      width: 115,
-      render: (status) => <AttendanceStatusTag status={status} />,
+      key: 'status',
+      width: 140,
+      render: (_, item) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <AttendanceStatusTag status={item.status} />
+          {item.unverifiedDevice && (
+            <Tooltip title="Chấm công từ thiết bị mới / đang chờ quản lý phê duyệt">
+              <Tag color="warning" icon={<MobileOutlined />}>TB chờ duyệt</Tag>
+            </Tooltip>
+          )}
+          {item.unverifiedWifi && (
+            <Tooltip title={`Không khớp mạng Wi-Fi chi nhánh (IP: ${item.checkInIpAddress || '—'})`}>
+              <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+            </Tooltip>
+          )}
+        </div>
+      ),
     },
   ]
 
@@ -357,13 +440,18 @@ export default function MyAttendancePage() {
           <h1>Chấm công GPS</h1>
           <p>Check-in và check-out tại chi nhánh bằng vị trí hiện tại của thiết bị.</p>
         </div>
-        <Button
-          icon={<ReloadOutlined />}
-          loading={loading}
-          onClick={refreshData}
-        >
-          Làm mới
-        </Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button icon={<MobileOutlined />} onClick={openMyDevicesModal}>
+            Thiết bị của tôi
+          </Button>
+          <Button
+            icon={<ReloadOutlined />}
+            loading={loading}
+            onClick={refreshData}
+          >
+            Làm mới
+          </Button>
+        </div>
       </section>
 
       <Alert
@@ -433,7 +521,19 @@ export default function MyAttendancePage() {
                   <div className="attendance-shift-status">
                     {attendance ? (
                       <>
-                        <AttendanceStatusTag status={attendance.status} />
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <AttendanceStatusTag status={attendance.status} />
+                          {attendance.unverifiedDevice && (
+                            <Tooltip title="Thiết bị này đang chờ Quản lý phê duyệt">
+                              <Tag color="warning" icon={<MobileOutlined />}>Thiết bị chờ duyệt</Tag>
+                            </Tooltip>
+                          )}
+                          {attendance.unverifiedWifi && (
+                            <Tooltip title="Chấm công không khớp mạng Wi-Fi của chi nhánh">
+                              <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+                            </Tooltip>
+                          )}
+                        </div>
                         <small>
                           Vào {formatInstant(attendance.checkInAt, attendance.timezone)}
                           {attendance.checkOutAt
@@ -455,16 +555,28 @@ export default function MyAttendancePage() {
                       </>
                     )}
                   </div>
-                  <Button
-                    danger={canCheckOut}
-                    disabled={Boolean(actionKey) || (!canCheckIn && !canCheckOut)}
-                    icon={canCheckOut ? <LogoutOutlined /> : <LoginOutlined />}
-                    loading={actionKey === currentActionKey}
-                    onClick={() => handleAttendanceAction(shift, action)}
-                    type={canCheckIn ? 'primary' : 'default'}
-                  >
-                    {canCheckOut ? 'Check-out' : attendance ? 'Đã hoàn thành' : 'Check-in'}
-                  </Button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                    <Button
+                      danger={canCheckOut}
+                      disabled={Boolean(actionKey) || (!canCheckIn && !canCheckOut)}
+                      icon={canCheckOut ? <LogoutOutlined /> : <LoginOutlined />}
+                      loading={actionKey === currentActionKey}
+                      onClick={() => handleAttendanceAction(shift, action)}
+                      type={canCheckIn ? 'primary' : 'default'}
+                    >
+                      {canCheckOut ? 'Check-out' : attendance ? 'Đã hoàn thành' : 'Check-in'}
+                    </Button>
+                    {(canCheckIn || canCheckOut) && (
+                      <Button
+                        size="small"
+                        type="link"
+                        style={{ padding: 0, fontSize: 12 }}
+                        onClick={() => startExplanationFlow(shift, action)}
+                      >
+                        Dùng máy khác? Giải trình
+                      </Button>
+                    )}
+                  </div>
                 </article>
               )
             })}
@@ -531,6 +643,102 @@ export default function MyAttendancePage() {
           scroll={{ x: 1050 }}
         />
       </section>
+
+      {/* Modal danh sách thiết bị của nhân viên */}
+      <Modal
+        footer={null}
+        onCancel={() => setDeviceModalOpen(false)}
+        open={deviceModalOpen}
+        title={<span><MobileOutlined /> Thiết bị chấm công của tôi</span>}
+        width={680}
+      >
+        <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 16 }}>
+          Hệ thống ghi nhận thiết bị bạn sử dụng để chấm công nhằm chống gian lận. Thiết bị hiện tại của bạn: <strong>{getDeviceLabel()}</strong>.
+        </p>
+        <Table
+          dataSource={myDevices}
+          loading={devicesLoading}
+          locale={{ emptyText: 'Chưa có thiết bị nào được ghi nhận.' }}
+          pagination={false}
+          rowKey="id"
+          size="small"
+          columns={[
+            {
+              title: 'Tên thiết bị',
+              dataIndex: 'deviceLabel',
+              render: (label, item) => (
+                <div>
+                  <strong>{label || item.deviceFingerprint}</strong>
+                  {item.deviceExplanation && (
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>
+                      Lý do: {item.deviceExplanation}
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              title: 'Trạng thái',
+              dataIndex: 'status',
+              width: 130,
+              render: (status) => {
+                if (status === 'APPROVED') return <Tag color="success">Đã duyệt</Tag>
+                if (status === 'REVOKED') return <Tag color="error">Bị thu hồi</Tag>
+                return <Tag color="warning">Chờ duyệt</Tag>
+              },
+            },
+            {
+              title: 'Lần cuối sử dụng',
+              dataIndex: 'lastSeenAt',
+              width: 170,
+              render: (value) => value ? formatInstant(value, 'Asia/Ho_Chi_Minh') : '—',
+            },
+          ]}
+        />
+      </Modal>
+
+      {/* Modal nhập giải trình khi đổi thiết bị */}
+      <Modal
+        cancelText="Hủy"
+        okText="Xác nhận chấm công"
+        onCancel={() => setExplanationModalOpen(false)}
+        onOk={submitWithExplanation}
+        open={explanationModalOpen}
+        title={<span><InfoCircleOutlined /> Giải trình thiết bị chấm công</span>}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+          <Alert
+            description={`Thiết bị đang nhận diện: "${getDeviceLabel()}". Nếu đây là máy mới hoặc máy mượn, vui lòng nêu lý do để quản lý duyệt nhanh chóng.`}
+            message="Chống gian lận chấm công"
+            showIcon
+            type="info"
+          />
+          <div>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+              <WifiOutlined /> Tên mạng Wi-Fi đang kết nối (nếu có):
+            </label>
+            <Input
+              maxLength={100}
+              onChange={(e) => setInputWifiSsid(e.target.value)}
+              placeholder="Ví dụ: Highlands_Coffee_Q1"
+              value={inputWifiSsid}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+              Lý do sử dụng thiết bị này:
+            </label>
+            <Input.TextArea
+              maxLength={255}
+              onChange={(e) => setDeviceExplanation(e.target.value)}
+              placeholder="Ví dụ: Đổi điện thoại mới, máy cũ hỏng, mượn máy đồng nghiệp,..."
+              rows={3}
+              showCount
+              value={deviceExplanation}
+            />
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }

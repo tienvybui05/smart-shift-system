@@ -20,6 +20,7 @@ import com.smartshift.repository.AttendanceRepository;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.UserRepository;
 import com.smartshift.service.AttendanceService;
+import com.smartshift.service.EmployeeDeviceService;
 import com.smartshift.service.SchedulingAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final ShiftAssignmentRepository shiftAssignmentRepository;
     private final UserRepository userRepository;
     private final SchedulingAccessService schedulingAccessService;
+    private final EmployeeDeviceService employeeDeviceService;
     private final AttendanceMapper attendanceMapper;
     private final Clock clock;
 
@@ -63,6 +65,16 @@ public class AttendanceServiceImpl implements AttendanceService {
         String username,
         AttendanceGpsRequest request
     ) {
+        return checkIn(username, request, null);
+    }
+
+    @Override
+    @Transactional
+    public AttendanceResponse checkIn(
+        String username,
+        AttendanceGpsRequest request,
+        String clientIp
+    ) {
         ShiftAssignment assignment = findAssignmentForUpdate(
             request.shiftAssignmentId()
         );
@@ -71,6 +83,14 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         Instant checkedInAt = clock.instant();
         validateCheckInWindow(assignment.getWorkShift(), checkedInAt);
+        boolean deviceVerified = employeeDeviceService.validateAndRegisterDevice(
+            username,
+            new com.smartshift.dto.device.DeviceCheckInRequest(
+                request.deviceFingerprint(),
+                request.deviceLabel(),
+                request.deviceExplanation()
+            )
+        );
         if (attendanceRepository.findByShiftAssignmentId(
             assignment.getId()
         ).isPresent()) {
@@ -79,10 +99,15 @@ public class AttendanceServiceImpl implements AttendanceService {
             );
         }
 
-        GpsCheck gpsCheck = validateGps(
-            assignment.getWorkShift().getSchedulePeriod().getLocation(),
-            request
+        Location location = assignment.getWorkShift().getSchedulePeriod().getLocation();
+        GpsCheck gpsCheck = validateGps(location, request);
+        boolean wifiVerified = validateWifi(
+            location,
+            clientIp,
+            request.wifiSsid(),
+            request.wifiBssid()
         );
+
         Attendance attendance = new Attendance();
         attendance.setShiftAssignment(assignment);
         attendance.setCheckInAt(checkedInAt);
@@ -93,6 +118,10 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
         attendance.setCheckInDistanceMeters(gpsCheck.distanceMeters());
         attendance.setBreakMinutes(assignment.getWorkShift().getBreakMinutes());
+        attendance.setUnverifiedDevice(!deviceVerified);
+        attendance.setCheckInIpAddress(clientIp);
+        attendance.setCheckInWifiSsid(request.wifiSsid());
+        attendance.setUnverifiedWifi(!wifiVerified);
         recalculateAttendance(attendance);
 
         return attendanceMapper.toResponse(
@@ -105,6 +134,16 @@ public class AttendanceServiceImpl implements AttendanceService {
     public AttendanceResponse checkOut(
         String username,
         AttendanceGpsRequest request
+    ) {
+        return checkOut(username, request, null);
+    }
+
+    @Override
+    @Transactional
+    public AttendanceResponse checkOut(
+        String username,
+        AttendanceGpsRequest request,
+        String clientIp
     ) {
         ShiftAssignment assignment = findAssignmentForUpdate(
             request.shiftAssignmentId()
@@ -134,9 +173,21 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.getCheckInAt(),
             checkedOutAt
         );
-        GpsCheck gpsCheck = validateGps(
-            assignment.getWorkShift().getSchedulePeriod().getLocation(),
-            request
+        boolean deviceVerified = employeeDeviceService.validateAndRegisterDevice(
+            username,
+            new com.smartshift.dto.device.DeviceCheckInRequest(
+                request.deviceFingerprint(),
+                request.deviceLabel(),
+                request.deviceExplanation()
+            )
+        );
+        Location location = assignment.getWorkShift().getSchedulePeriod().getLocation();
+        GpsCheck gpsCheck = validateGps(location, request);
+        boolean wifiVerified = validateWifi(
+            location,
+            clientIp,
+            request.wifiSsid(),
+            request.wifiBssid()
         );
 
         attendance.setCheckOutAt(checkedOutAt);
@@ -148,11 +199,73 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setCheckOutDistanceMeters(gpsCheck.distanceMeters());
         attendance.setApprovedBy(null);
         attendance.setApprovedAt(null);
+        if (!deviceVerified) {
+            attendance.setUnverifiedDevice(true);
+        }
+        attendance.setCheckOutIpAddress(clientIp);
+        attendance.setCheckOutWifiSsid(request.wifiSsid());
+        if (!wifiVerified) {
+            attendance.setUnverifiedWifi(true);
+        }
         recalculateAttendance(attendance);
 
         return attendanceMapper.toResponse(
             attendanceRepository.save(attendance)
         );
+    }
+
+    private boolean validateWifi(
+        Location location,
+        String clientIp,
+        String requestWifiSsid,
+        String requestWifiBssid
+    ) {
+        if (!location.isWifiRequired()) {
+            return true;
+        }
+
+        boolean ipMatches = false;
+        if (location.getAllowedIpAddress() != null && !location.getAllowedIpAddress().isBlank()) {
+            ipMatches = isIpAllowed(clientIp, location.getAllowedIpAddress());
+        }
+
+        boolean ssidMatches = false;
+        if (location.getWifiSsid() != null && !location.getWifiSsid().isBlank()) {
+            ssidMatches = requestWifiSsid != null
+                && location.getWifiSsid().trim().equalsIgnoreCase(requestWifiSsid.trim());
+        }
+
+        boolean bssidMatches = false;
+        if (location.getWifiBssid() != null && !location.getWifiBssid().isBlank()) {
+            bssidMatches = requestWifiBssid != null
+                && location.getWifiBssid().trim().equalsIgnoreCase(requestWifiBssid.trim());
+        }
+
+        return ipMatches || ssidMatches || bssidMatches;
+    }
+
+    private boolean isIpAllowed(String clientIp, String allowedIpPattern) {
+        if (clientIp == null || clientIp.isBlank() || allowedIpPattern == null) {
+            return false;
+        }
+        String[] allowedList = allowedIpPattern.split("[,;]");
+        for (String pattern : allowedList) {
+            String trimmed = pattern.trim();
+            if (trimmed.equals(clientIp)) {
+                return true;
+            }
+            if (trimmed.endsWith(".*")) {
+                String prefix = trimmed.substring(0, trimmed.length() - 1);
+                if (clientIp.startsWith(prefix)) {
+                    return true;
+                }
+            }
+            if (("127.0.0.1".equals(clientIp) || "0:0:0:0:0:0:0:1".equals(clientIp))
+                && ("localhost".equalsIgnoreCase(trimmed) || "127.0.0.1".equals(trimmed))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

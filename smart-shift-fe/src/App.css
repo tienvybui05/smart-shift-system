@@ -807,13 +807,60 @@
 .dashboard-sidebar {
   position: fixed;
   z-index: 10;
-  display: flex;
-  width: 250px;
+  display: none;
+  width: 210px;
   height: 100vh;
   flex-direction: column;
   padding: 27px 20px 22px;
   border-right: 1px solid #e7e9f0;
   background: white;
+  transition: transform 0.22s ease;
+  overflow-y: auto;
+}
+
+/* Tùy chỉnh thanh cuộn cho sidebar nhìn gọn gàng hơn */
+.dashboard-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.dashboard-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dashboard-sidebar::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 10px;
+}
+
+.dashboard-sidebar.sidebar-visible {
+  display: flex;
+}
+
+.dashboard-main {
+  width: 100%;
+  margin-left: 0;
+  transition: margin-left 0.22s ease;
+}
+
+.sidebar-is-open .dashboard-main {
+  margin-left: 210px;
+  width: calc(100% - 210px);
+}
+
+.sidebar-toggle-button {
+  display: none;
+}
+
+.mobile-menu-button {
+  display: none !important;
+}
+
+@media (min-width: 801px) {
+  .sidebar-toggle-button {
+    display: inline-flex;
+  }
+
+  .mobile-menu-button {
+    display: none !important;
+  }
 }
 
 .sidebar-brand {
@@ -892,11 +939,6 @@
   font-size: 12px;
 }
 
-.dashboard-main {
-  width: calc(100% - 250px);
-  margin-left: 250px;
-}
-
 .dashboard-header {
   position: sticky;
   z-index: 5;
@@ -918,7 +960,7 @@
 }
 
 .mobile-menu-button {
-  display: none;
+  display: inline-flex;
 }
 
 .header-date {
@@ -3242,12 +3284,15 @@
   }
 
   .dashboard-sidebar {
-    display: none;
+    display: none !important;
   }
 
-  .dashboard-main {
-    width: 100%;
+  .sidebar-is-open .dashboard-main {
     margin-left: 0;
+  }
+
+  .sidebar-toggle-button {
+    display: none !important;
   }
 
   .mobile-menu-button {
@@ -3434,3 +3479,5 @@
     border-top: 0;
   }
 }
+
+

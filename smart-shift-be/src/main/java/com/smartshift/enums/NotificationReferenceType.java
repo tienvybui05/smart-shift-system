@@ -6,5 +6,6 @@ public enum NotificationReferenceType {
     OPEN_SHIFT_CLAIM,
     SHIFT_SWAP_REQUEST,
     ATTENDANCE,
-    PAYROLL_RECORD
+    PAYROLL_RECORD,
+    EMPLOYEE_DEVICE
 }

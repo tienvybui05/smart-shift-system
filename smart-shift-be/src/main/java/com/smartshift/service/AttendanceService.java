@@ -12,13 +12,29 @@ public interface AttendanceService {
 
     AttendanceResponse checkIn(
         String username,
-        AttendanceGpsRequest request
+        AttendanceGpsRequest request,
+        String clientIp
     );
+
+    default AttendanceResponse checkIn(
+        String username,
+        AttendanceGpsRequest request
+    ) {
+        return checkIn(username, request, null);
+    }
 
     AttendanceResponse checkOut(
         String username,
-        AttendanceGpsRequest request
+        AttendanceGpsRequest request,
+        String clientIp
     );
+
+    default AttendanceResponse checkOut(
+        String username,
+        AttendanceGpsRequest request
+    ) {
+        return checkOut(username, request, null);
+    }
 
     List<AttendanceResponse> getMyAttendances(
         String username,

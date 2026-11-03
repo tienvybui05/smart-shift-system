@@ -37,6 +37,20 @@ public record LocationRequest(
     @Max(value = 5000, message = "Bán kính chấm công tối đa là 5000 mét")
     Integer attendanceRadiusMeters,
 
+    @DecimalMin(value = "0.0", message = "Quỹ lương tuần không được âm")
+    BigDecimal weeklyBudget,
+
+    @Size(max = 100, message = "Tên Wi-Fi không được vượt quá 100 ký tự")
+    String wifiSsid,
+
+    @Size(max = 50, message = "BSSID không được vượt quá 50 ký tự")
+    String wifiBssid,
+
+    @Size(max = 100, message = "Địa chỉ IP cho phép không được vượt quá 100 ký tự")
+    String allowedIpAddress,
+
+    Boolean wifiRequired,
+
     @NotNull(message = "Trạng thái hoạt động không được để trống")
     Boolean active
 ) {

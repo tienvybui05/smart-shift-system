@@ -90,4 +90,22 @@ public class Attendance extends BaseTimeEntity {
 
     @Column(name = "approved_at")
     private Instant approvedAt;
+
+    @Column(name = "is_unverified_device", nullable = false)
+    private boolean unverifiedDevice = false;
+
+    @Column(name = "check_in_ip_address", length = 50)
+    private String checkInIpAddress;
+
+    @Column(name = "check_in_wifi_ssid", length = 100)
+    private String checkInWifiSsid;
+
+    @Column(name = "check_out_ip_address", length = 50)
+    private String checkOutIpAddress;
+
+    @Column(name = "check_out_wifi_ssid", length = 100)
+    private String checkOutWifiSsid;
+
+    @Column(name = "is_unverified_wifi", nullable = false)
+    private boolean unverifiedWifi = false;
 }

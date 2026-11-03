@@ -26,6 +26,13 @@ public class LocationMapper {
                 request.attendanceRadiusMeters()
             );
         }
+        location.setWeeklyBudget(request.weeklyBudget());
+        location.setWifiSsid(normalizeNullableText(request.wifiSsid()));
+        location.setWifiBssid(normalizeNullableText(request.wifiBssid()));
+        location.setAllowedIpAddress(normalizeNullableText(request.allowedIpAddress()));
+        if (request.wifiRequired() != null) {
+            location.setWifiRequired(request.wifiRequired());
+        }
         location.setActive(request.active());
     }
 
@@ -39,6 +46,11 @@ public class LocationMapper {
             location.getLatitude(),
             location.getLongitude(),
             location.getAttendanceRadiusMeters(),
+            location.getWeeklyBudget(),
+            location.getWifiSsid(),
+            location.getWifiBssid(),
+            location.getAllowedIpAddress(),
+            location.isWifiRequired(),
             location.isActive(),
             location.getCreatedAt(),
             location.getUpdatedAt()

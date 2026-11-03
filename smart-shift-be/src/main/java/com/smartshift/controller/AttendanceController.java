@@ -35,21 +35,36 @@ public class AttendanceController {
     @PostMapping("/check-in")
     public ResponseEntity<AttendanceResponse> checkIn(
         @Valid @RequestBody AttendanceGpsRequest request,
-        Authentication authentication
+        Authentication authentication,
+        jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
+        String clientIp = extractClientIp(httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            attendanceService.checkIn(authentication.getName(), request)
+            attendanceService.checkIn(authentication.getName(), request, clientIp)
         );
     }
 
     @PostMapping("/check-out")
     public ResponseEntity<AttendanceResponse> checkOut(
         @Valid @RequestBody AttendanceGpsRequest request,
-        Authentication authentication
+        Authentication authentication,
+        jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
+        String clientIp = extractClientIp(httpRequest);
         return ResponseEntity.ok(
-            attendanceService.checkOut(authentication.getName(), request)
+            attendanceService.checkOut(authentication.getName(), request, clientIp)
         );
+    }
+
+    private String extractClientIp(jakarta.servlet.http.HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @GetMapping("/me")

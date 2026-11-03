@@ -2,8 +2,10 @@ package com.smartshift.dto.attendance;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -25,6 +27,21 @@ public record AttendanceGpsRequest(
     @NotNull(message = "Độ chính xác GPS không được để trống")
     @DecimalMin(value = "0.0", message = "Độ chính xác GPS không được âm")
     @DecimalMax(value = "5000.0", message = "Độ chính xác GPS không hợp lệ")
-    BigDecimal accuracyMeters
+    BigDecimal accuracyMeters,
+
+    @NotBlank(message = "Device fingerprint không được để trống")
+    @Size(max = 255, message = "Device fingerprint không được vượt quá 255 ký tự")
+    String deviceFingerprint,
+
+    @Size(max = 100, message = "Tên thiết bị không được vượt quá 100 ký tự")
+    String deviceLabel,
+
+    String deviceExplanation,
+
+    @Size(max = 100, message = "Tên Wi-Fi không được vượt quá 100 ký tự")
+    String wifiSsid,
+
+    @Size(max = 50, message = "BSSID không được vượt quá 50 ký tự")
+    String wifiBssid
 ) {
 }

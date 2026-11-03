@@ -40,6 +40,12 @@ public record AttendanceResponse(
     String approvedByName,
     Instant approvedAt,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    boolean unverifiedDevice,
+    String checkInIpAddress,
+    String checkInWifiSsid,
+    String checkOutIpAddress,
+    String checkOutWifiSsid,
+    boolean unverifiedWifi
 ) {
 }

@@ -44,6 +44,21 @@ public class Location extends BaseTimeEntity {
     @Column(name = "attendance_radius_meters", nullable = false)
     private Integer attendanceRadiusMeters = 200;
 
+    @Column(name = "weekly_budget", precision = 15, scale = 2)
+    private BigDecimal weeklyBudget;
+
+    @Column(name = "wifi_ssid", length = 100)
+    private String wifiSsid;
+
+    @Column(name = "wifi_bssid", length = 50)
+    private String wifiBssid;
+
+    @Column(name = "allowed_ip_address", length = 100)
+    private String allowedIpAddress;
+
+    @Column(name = "is_wifi_required", nullable = false)
+    private boolean wifiRequired = false;
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 }

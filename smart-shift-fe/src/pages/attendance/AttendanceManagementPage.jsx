@@ -1,13 +1,30 @@
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
+  DownloadOutlined,
   EditOutlined,
+  MobileOutlined,
   ReloadOutlined,
+  StopOutlined,
   TeamOutlined,
   WarningOutlined,
+  WifiOutlined,
 } from '@ant-design/icons'
-import { Alert, Button, Input, Select, Table, Tag, Tooltip, message } from 'antd'
+import {
+  Alert,
+  Badge,
+  Button,
+  Input,
+  Popconfirm,
+  Select,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+  message,
+} from 'antd'
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import AttendanceApprovalModal from '../../components/attendance/AttendanceApprovalModal.jsx'
 import useAuth from '../../hooks/useAuth.js'
@@ -15,6 +32,10 @@ import {
   approveAttendance,
   getAttendances,
 } from '../../services/attendanceService.js'
+import {
+  getDevices,
+  reviewDevice,
+} from '../../services/employeeDeviceService.js'
 import { getLocations } from '../../services/referenceService.js'
 
 const STATUS_CONFIG = {
@@ -22,6 +43,12 @@ const STATUS_CONFIG = {
   LATE: { label: 'Đi trễ', color: 'warning' },
   EARLY_LEAVE: { label: 'Về sớm', color: 'orange' },
   ABSENT: { label: 'Vắng mặt', color: 'error' },
+}
+
+const DEVICE_STATUS_CONFIG = {
+  PENDING: { label: 'Chờ duyệt', color: 'warning' },
+  APPROVED: { label: 'Đã duyệt', color: 'success' },
+  REVOKED: { label: 'Bị thu hồi', color: 'error' },
 }
 
 function toDateInputValue(date) {
@@ -87,10 +114,88 @@ function AttendanceStatusTag({ status }) {
   return <Tag color={config.color}>{config.label}</Tag>
 }
 
+function exportAttendancesToCsv(attendances, fileName = 'bang_cham_cong.csv') {
+  if (!attendances || attendances.length === 0) return
+
+  const headers = [
+    'Mã nhân viên',
+    'Họ tên',
+    'Chi nhánh',
+    'Ngày làm',
+    'Ca bắt đầu',
+    'Ca kết thúc',
+    'Giờ vào thực tế',
+    'Giờ ra thực tế',
+    'Giờ công (phút)',
+    'Giờ công (giờ)',
+    'Đi trễ (phút)',
+    'Về sớm (phút)',
+    'Tăng ca (phút)',
+    'Trạng thái',
+    'Thiết bị',
+    'Mạng Wi-Fi',
+    'IP Check-in',
+    'Tên Wi-Fi',
+    'Xác nhận duyệt',
+    'Người duyệt',
+    'Ghi chú',
+  ]
+
+  const rows = attendances.map((item) => [
+    item.employeeCode || '',
+    item.employeeName || '',
+    item.locationName || '',
+    item.workDate || '',
+    formatInstant(item.shiftStartAt, item.timezone),
+    formatInstant(item.shiftEndAt, item.timezone),
+    item.checkInAt ? formatInstant(item.checkInAt, item.timezone) : '',
+    item.checkOutAt ? formatInstant(item.checkOutAt, item.timezone) : '',
+    item.actualMinutes ?? '',
+    item.actualMinutes ? (item.actualMinutes / 60).toFixed(2) : '',
+    item.lateMinutes || 0,
+    item.earlyLeaveMinutes || 0,
+    item.overtimeMinutes || 0,
+    STATUS_CONFIG[item.status]?.label || item.status,
+    item.unverifiedDevice ? 'TB chưa duyệt' : 'Hợp lệ',
+    item.unverifiedWifi ? 'Sai Wi-Fi' : 'Khớp Wi-Fi',
+    item.checkInIpAddress || '',
+    item.checkInWifiSsid || '',
+    item.approvedAt ? 'Đã duyệt' : 'Chưa duyệt',
+    item.approvedByName || '',
+    item.note || '',
+  ])
+
+  const csvContent =
+    '\uFEFF' +
+    [headers, ...rows]
+      .map((row) =>
+        row
+          .map((field) => {
+            const str = String(field ?? '').replace(/"/g, '""')
+            return `"${str}"`
+          })
+          .join(','),
+      )
+      .join('\r\n')
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  link.setAttribute('download', fileName)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function AttendanceManagementPage() {
   const { user } = useAuth()
   const isAdmin = user.role === 'ROLE_ADMIN'
   const defaultRange = getDefaultRange()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'attendances'
+
   const [messageApi, messageContext] = message.useMessage()
   const [attendances, setAttendances] = useState([])
   const [locations, setLocations] = useState(() => (
@@ -101,6 +206,8 @@ export default function AttendanceManagementPage() {
   const [locationsLoading, setLocationsLoading] = useState(isAdmin)
   const [locationError, setLocationError] = useState('')
   const [locationRefreshKey, setLocationRefreshKey] = useState(0)
+
+  // Attendance Filters
   const [filterInputs, setFilterInputs] = useState({
     ...defaultRange,
     locationId: isAdmin ? undefined : user.locationId,
@@ -110,6 +217,14 @@ export default function AttendanceManagementPage() {
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [editingAttendance, setEditingAttendance] = useState(null)
+
+  // Employee Devices State
+  const [devices, setDevices] = useState([])
+  const [devicesLoading, setDevicesLoading] = useState(false)
+  const [deviceStatusFilter, setDeviceStatusFilter] = useState(undefined)
+  const [deviceLocationFilter, setDeviceLocationFilter] = useState(isAdmin ? undefined : user.locationId)
+  const [deviceRefreshKey, setDeviceRefreshKey] = useState(0)
+  const [reviewingDeviceId, setReviewingDeviceId] = useState(null)
 
   useEffect(() => {
     if (!isAdmin) return undefined
@@ -132,6 +247,7 @@ export default function AttendanceManagementPage() {
     }
   }, [isAdmin, locationRefreshKey])
 
+  // Load Attendances
   useEffect(() => {
     let mounted = true
     getAttendances(filters)
@@ -152,98 +268,149 @@ export default function AttendanceManagementPage() {
     }
   }, [filters, messageApi, refreshKey])
 
+  // Load Devices
+  useEffect(() => {
+    let mounted = true
+    setDevicesLoading(true)
+    getDevices({
+      locationId: deviceLocationFilter,
+      status: deviceStatusFilter,
+    })
+      .then((result) => {
+        if (mounted) setDevices(result)
+      })
+      .catch((error) => {
+        if (!mounted) return
+        setDevices([])
+        messageApi.error(getApiErrorMessage(error, 'Không thể tải danh sách thiết bị.'))
+      })
+      .finally(() => {
+        if (mounted) setDevicesLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [deviceLocationFilter, deviceStatusFilter, deviceRefreshKey, messageApi])
+
+  const pendingDevicesCount = useMemo(
+    () => devices.filter((d) => d.status === 'PENDING').length,
+    [devices],
+  )
+
   const summary = useMemo(() => ({
     total: attendances.length,
     approved: attendances.filter((item) => item.approvedAt).length,
     exceptions: attendances.filter(
       (item) => ['LATE', 'EARLY_LEAVE', 'ABSENT'].includes(item.status),
     ).length,
+    unverified: attendances.filter((item) => item.unverifiedDevice).length,
+    unverifiedWifi: attendances.filter((item) => item.unverifiedWifi).length,
     actualMinutes: attendances.reduce(
       (total, item) => total + Number(item.actualMinutes || 0),
       0,
     ),
   }), [attendances])
 
-  function validateRange() {
+  function applyFilters() {
     if (!filterInputs.startDate || !filterInputs.endDate) {
       messageApi.error('Vui lòng chọn đầy đủ khoảng ngày.')
-      return false
+      return
     }
     if (filterInputs.endDate < filterInputs.startDate) {
       messageApi.error('Ngày kết thúc không được trước ngày bắt đầu.')
-      return false
+      return
     }
-    const days = (
+    const rangeDays = (
       new Date(`${filterInputs.endDate}T00:00:00`)
       - new Date(`${filterInputs.startDate}T00:00:00`)
     ) / 86400000
-    if (days >= 93) {
+    if (rangeDays >= 93) {
       messageApi.error('Chỉ được tra cứu tối đa 93 ngày.')
-      return false
+      return
     }
-    return true
-  }
-
-  function applyFilters() {
-    if (!validateRange()) return
     setLoading(true)
-    setFilters({ ...filterInputs })
+    setFilters(filterInputs)
   }
 
   function resetFilters() {
-    const range = getDefaultRange()
-    const resetValues = {
-      ...range,
+    const nextFilters = {
+      ...defaultRange,
       locationId: isAdmin ? undefined : user.locationId,
       status: undefined,
     }
-    setFilterInputs(resetValues)
+    setFilterInputs(nextFilters)
+    setFilters(nextFilters)
     setLoading(true)
-    setFilters(resetValues)
+  }
+
+  function handleExportCsv() {
+    if (attendances.length === 0) {
+      messageApi.info('Không có dữ liệu để xuất file.')
+      return
+    }
+    const fileName = `bang_cham_cong_${filters.startDate}_den_${filters.endDate}.csv`
+    exportAttendancesToCsv(attendances, fileName)
+    messageApi.success('Đã xuất file bảng chấm công thành công.')
+  }
+
+  function refreshAll() {
+    setLoading(true)
+    setRefreshKey((k) => k + 1)
+    setDeviceRefreshKey((k) => k + 1)
   }
 
   function retryLocations() {
-    setLocationsLoading(true)
     setLocationError('')
+    setLocationsLoading(true)
     setLocationRefreshKey((current) => current + 1)
   }
 
-  function refreshData() {
-    setLoading(true)
-    setRefreshKey((current) => current + 1)
-  }
-
   async function handleApproval(payload) {
+    if (!editingAttendance) return
     const updated = await approveAttendance(editingAttendance.id, payload)
-    setAttendances((current) => {
-      if (filters.status && filters.status !== updated.status) {
-        return current.filter((item) => item.id !== updated.id)
-      }
-      return current.map((item) => item.id === updated.id ? updated : item)
-    })
+    setAttendances((current) => current.map((item) => (item.id === updated.id ? updated : item)))
     messageApi.success(payload.checkInAt
-      ? 'Đã lưu và duyệt bản chấm công.'
-      : 'Đã ghi nhận nhân viên vắng mặt.')
+      ? 'Đã cập nhật và duyệt chấm công thành công.'
+      : 'Đã xác nhận vắng mặt ca làm.')
+    setEditingAttendance(null)
   }
 
-  const columns = [
+  async function handleReviewDevice(deviceId, approved) {
+    setReviewingDeviceId(deviceId)
+    try {
+      const updated = await reviewDevice(deviceId, { approved })
+      setDevices((prev) => prev.map((d) => (d.id === deviceId ? updated : d)))
+      messageApi.success(
+        approved
+          ? 'Đã phê duyệt thiết bị thành công. Nhân viên có thể dùng thiết bị này để chấm công.'
+          : 'Đã thu hồi quyền của thiết bị.',
+      )
+    } catch (err) {
+      messageApi.error(getApiErrorMessage(err, 'Thao tác trên thiết bị thất bại.'))
+    } finally {
+      setReviewingDeviceId(null)
+    }
+  }
+
+  const attendanceColumns = [
     {
       title: 'Nhân viên',
       key: 'employee',
+      width: 190,
       fixed: 'left',
-      width: 205,
       render: (_, item) => (
         <div className="employee-cell">
           <strong>{item.employeeName}</strong>
-          <span>{item.employeeCode}</span>
+          <small>{item.employeeCode}</small>
         </div>
       ),
     },
     {
-      title: 'Ngày làm việc',
+      title: 'Ngày làm',
       dataIndex: 'workDate',
-      width: 165,
-      render: (value) => <strong className="my-schedule-date">{formatDate(value)}</strong>,
+      width: 140,
+      render: (value) => <strong>{formatDate(value)}</strong>,
     },
     {
       title: 'Ca dự kiến',
@@ -301,15 +468,29 @@ export default function AttendanceManagementPage() {
     {
       title: 'Xác nhận',
       key: 'approval',
-      width: 150,
-      render: (_, item) => item.approvedAt ? (
+      width: 160,
+      render: (_, item) => (
         <div className="employee-cell employee-cell--normal">
-          <span><Tag color="success">Đã duyệt</Tag></span>
-          <Tooltip title={formatDateTime(item.approvedAt, item.timezone)}>
-            <small>{item.approvedByName}</small>
-          </Tooltip>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            {item.approvedAt ? <Tag color="success">Đã duyệt</Tag> : <Tag>Chưa duyệt</Tag>}
+            {item.unverifiedDevice && (
+              <Tooltip title="Chấm công từ thiết bị mới / chưa phê duyệt">
+                <Tag color="warning" icon={<MobileOutlined />}>TB lạ</Tag>
+              </Tooltip>
+            )}
+            {item.unverifiedWifi && (
+              <Tooltip title={`Không khớp mạng Wi-Fi chi nhánh (IP: ${item.checkInIpAddress || '—'}, Wi-Fi: ${item.checkInWifiSsid || '—'})`}>
+                <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+              </Tooltip>
+            )}
+          </div>
+          {item.approvedAt && (
+            <Tooltip title={formatDateTime(item.approvedAt, item.timezone)}>
+              <small>{item.approvedByName}</small>
+            </Tooltip>
+          )}
         </div>
-      ) : <Tag>Chưa duyệt</Tag>,
+      ),
     },
     {
       title: 'Thao tác',
@@ -329,16 +510,339 @@ export default function AttendanceManagementPage() {
     },
   ]
 
+  const deviceColumns = [
+    {
+      title: 'Nhân viên',
+      key: 'employee',
+      width: 190,
+      fixed: 'left',
+      render: (_, item) => (
+        <div className="employee-cell">
+          <strong>{item.employeeName}</strong>
+          <small>{item.employeeCode}</small>
+        </div>
+      ),
+    },
+    {
+      title: 'Tên thiết bị',
+      dataIndex: 'deviceLabel',
+      width: 220,
+      render: (label, item) => (
+        <div>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <MobileOutlined /> {label || 'Thiết bị không đặt tên'}
+          </strong>
+          <small style={{ color: '#9ca3af', fontFamily: 'monospace' }}>
+            {item.deviceFingerprint}
+          </small>
+        </div>
+      ),
+    },
+    {
+      title: 'Giải trình của nhân viên',
+      dataIndex: 'deviceExplanation',
+      width: 260,
+      render: (val) => val ? (
+        <Alert
+          message={<span style={{ fontSize: 13 }}>{val}</span>}
+          showIcon
+          style={{ padding: '4px 8px' }}
+          type="warning"
+        />
+      ) : (
+        <span style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: 13 }}>
+          Không có giải trình
+        </span>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      width: 120,
+      render: (status) => {
+        const conf = DEVICE_STATUS_CONFIG[status] || { label: status, color: 'default' }
+        return <Tag color={conf.color}>{conf.label}</Tag>
+      },
+    },
+    {
+      title: 'Đăng ký lúc',
+      dataIndex: 'registeredAt',
+      width: 160,
+      render: (val) => formatDateTime(val, 'Asia/Ho_Chi_Minh'),
+    },
+    {
+      title: 'Lần cuối chấm công',
+      dataIndex: 'lastSeenAt',
+      width: 160,
+      render: (val) => formatDateTime(val, 'Asia/Ho_Chi_Minh'),
+    },
+    {
+      title: 'Người duyệt',
+      key: 'approvedBy',
+      width: 150,
+      render: (_, item) => item.approvedByName ? (
+        <div>
+          <span>{item.approvedByName}</span>
+          <div style={{ color: '#9ca3af', fontSize: 11 }}>
+            {formatDateTime(item.approvedAt, 'Asia/Ho_Chi_Minh')}
+          </div>
+        </div>
+      ) : <span style={{ color: '#9ca3af' }}>—</span>,
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      fixed: 'right',
+      width: 170,
+      align: 'center',
+      render: (_, item) => (
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+          {item.status !== 'APPROVED' && (
+            <Popconfirm
+              cancelText="Hủy"
+              description="Các lần chấm công tiếp theo từ thiết bị này sẽ được công nhận."
+              okText="Phê duyệt"
+              onConfirm={() => handleReviewDevice(item.id, true)}
+              title="Phê duyệt thiết bị này?"
+            >
+              <Button
+                icon={<CheckCircleOutlined />}
+                loading={reviewingDeviceId === item.id}
+                size="small"
+                type="primary"
+              >
+                Duyệt
+              </Button>
+            </Popconfirm>
+          )}
+          {item.status !== 'REVOKED' && (
+            <Popconfirm
+              cancelText="Hủy"
+              description="Nhân viên sẽ không thể sử dụng thiết bị này để chấm công."
+              okButtonProps={{ danger: true }}
+              okText="Thu hồi"
+              onConfirm={() => handleReviewDevice(item.id, false)}
+              title="Thu hồi quyền thiết bị?"
+            >
+              <Button
+                danger
+                icon={<StopOutlined />}
+                loading={reviewingDeviceId === item.id}
+                size="small"
+              >
+                Thu hồi
+              </Button>
+            </Popconfirm>
+          )}
+        </div>
+      ),
+    },
+  ]
+
+  const tabItems = [
+    {
+      key: 'attendances',
+      label: (
+        <span>
+          <TeamOutlined /> Bảng chấm công
+        </span>
+      ),
+      children: (
+        <>
+          <section className="management-card attendance-management-filter-panel">
+            <Input
+              aria-label="Từ ngày"
+              max={filterInputs.endDate}
+              onChange={(event) => setFilterInputs((current) => ({
+                ...current,
+                startDate: event.target.value,
+              }))}
+              type="date"
+              value={filterInputs.startDate}
+            />
+            <Input
+              aria-label="Đến ngày"
+              min={filterInputs.startDate}
+              onChange={(event) => setFilterInputs((current) => ({
+                ...current,
+                endDate: event.target.value,
+              }))}
+              type="date"
+              value={filterInputs.endDate}
+            />
+            <Select
+              allowClear={isAdmin}
+              disabled={!isAdmin && Boolean(user.locationId)}
+              loading={locationsLoading}
+              onChange={(value) => setFilterInputs((current) => ({
+                ...current,
+                locationId: value,
+              }))}
+              options={locations.map((location) => ({
+                label: location.code ? `${location.code} — ${location.name}` : location.name,
+                value: location.id,
+              }))}
+              placeholder="Tất cả chi nhánh"
+              showSearch
+              optionFilterProp="label"
+              value={filterInputs.locationId}
+            />
+            <Select
+              allowClear
+              onChange={(value) => setFilterInputs((current) => ({
+                ...current,
+                status: value,
+              }))}
+              options={Object.entries(STATUS_CONFIG).map(([value, config]) => ({
+                label: config.label,
+                value,
+              }))}
+              placeholder="Tất cả trạng thái"
+              value={filterInputs.status}
+            />
+            <Button onClick={applyFilters} type="primary">Áp dụng</Button>
+            <Button icon={<ReloadOutlined />} onClick={resetFilters}>Đặt lại</Button>
+          </section>
+
+          <section className="attendance-management-summary-grid">
+            <article className="management-card attendance-summary-card">
+              <TeamOutlined />
+              <div><span>Bản chấm công</span><strong>{summary.total}</strong></div>
+            </article>
+            <article className="management-card attendance-summary-card">
+              <CheckCircleOutlined />
+              <div><span>Đã duyệt</span><strong>{summary.approved}</strong></div>
+            </article>
+            <article className="management-card attendance-summary-card attendance-summary-card--warning">
+              <WarningOutlined />
+              <div><span>Cần chú ý</span><strong>{summary.exceptions}</strong></div>
+            </article>
+            <article className="management-card attendance-summary-card">
+              <MobileOutlined />
+              <div><span>Thiết bị chưa duyệt</span><strong>{summary.unverified}</strong></div>
+            </article>
+            <article className="management-card attendance-summary-card">
+              <WifiOutlined />
+              <div><span>Sai mạng Wi-Fi</span><strong>{summary.unverifiedWifi}</strong></div>
+            </article>
+            <article className="management-card attendance-summary-card">
+              <ClockCircleOutlined />
+              <div><span>Tổng giờ thực tế</span><strong>{formatMinutes(summary.actualMinutes)}</strong></div>
+            </article>
+          </section>
+
+          <section className="management-card employee-table-card">
+            <div className="table-heading">
+              <div>
+                <strong>Danh sách chấm công</strong>
+                <span>{attendances.length} bản ghi phù hợp bộ lọc</span>
+              </div>
+              <Button
+                disabled={attendances.length === 0}
+                icon={<DownloadOutlined />}
+                onClick={handleExportCsv}
+              >
+                Xuất file Excel (CSV)
+              </Button>
+            </div>
+            <Table
+              columns={attendanceColumns}
+              dataSource={attendances}
+              loading={loading}
+              locale={{ emptyText: 'Không có bản chấm công phù hợp.' }}
+              pagination={{ pageSize: 10, showSizeChanger: false }}
+              rowKey="id"
+              scroll={{ x: 1450 }}
+            />
+          </section>
+        </>
+      ),
+    },
+    {
+      key: 'devices',
+      label: (
+        <span>
+          <MobileOutlined /> Duyệt thiết bị
+          {pendingDevicesCount > 0 && (
+            <Badge count={pendingDevicesCount} style={{ marginLeft: 8 }} />
+          )}
+        </span>
+      ),
+      children: (
+        <>
+          <section className="management-card attendance-management-filter-panel">
+            <Select
+              allowClear={isAdmin}
+              disabled={!isAdmin && Boolean(user.locationId)}
+              loading={locationsLoading}
+              onChange={(value) => setDeviceLocationFilter(value)}
+              options={locations.map((loc) => ({
+                label: loc.code ? `${loc.code} — ${loc.name}` : loc.name,
+                value: loc.id,
+              }))}
+              placeholder="Tất cả chi nhánh"
+              showSearch
+              style={{ width: 220 }}
+              value={deviceLocationFilter}
+            />
+            <Select
+              allowClear
+              onChange={(value) => setDeviceStatusFilter(value)}
+              options={[
+                { label: 'Chờ duyệt', value: 'PENDING' },
+                { label: 'Đã duyệt', value: 'APPROVED' },
+                { label: 'Bị thu hồi', value: 'REVOKED' },
+              ]}
+              placeholder="Tất cả trạng thái"
+              style={{ width: 160 }}
+              value={deviceStatusFilter}
+            />
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => setDeviceRefreshKey((k) => k + 1)}
+            >
+              Làm mới
+            </Button>
+          </section>
+
+          <section className="management-card employee-table-card">
+            <div className="table-heading">
+              <div>
+                <strong>Thiết bị chấm công của nhân viên</strong>
+                <span>
+                  {devices.length} thiết bị được ghi nhận · {pendingDevicesCount} thiết bị chờ phê duyệt
+                </span>
+              </div>
+            </div>
+            <Table
+              columns={deviceColumns}
+              dataSource={devices}
+              loading={devicesLoading}
+              locale={{ emptyText: 'Chưa có thiết bị nào phù hợp bộ lọc.' }}
+              pagination={{ pageSize: 10, showSizeChanger: false }}
+              rowKey="id"
+              scroll={{ x: 1300 }}
+            />
+          </section>
+        </>
+      ),
+    },
+  ]
+
   return (
     <>
       {messageContext}
       <section className="page-heading">
         <div>
           <span className="eyebrow">Quản lý nhân sự</span>
-          <h1>Quản lý chấm công</h1>
-          <p>Theo dõi giờ vào, giờ ra, sai lệch và xác nhận bảng công của nhân viên.</p>
+          <h1>Quản lý chấm công & Thiết bị</h1>
+          <p>Theo dõi bảng công, phát hiện gian lận và phê duyệt thiết bị chấm công của nhân viên.</p>
         </div>
-        <Button icon={<ReloadOutlined />} loading={loading} onClick={refreshData}>
+        <Button
+          icon={<ReloadOutlined />}
+          loading={loading || devicesLoading}
+          onClick={refreshAll}
+        >
           Làm mới
         </Button>
       </section>
@@ -352,97 +856,12 @@ export default function AttendanceManagementPage() {
         />
       )}
 
-      <section className="management-card attendance-management-filter-panel">
-        <Input
-          aria-label="Từ ngày"
-          max={filterInputs.endDate}
-          onChange={(event) => setFilterInputs((current) => ({
-            ...current,
-            startDate: event.target.value,
-          }))}
-          type="date"
-          value={filterInputs.startDate}
-        />
-        <Input
-          aria-label="Đến ngày"
-          min={filterInputs.startDate}
-          onChange={(event) => setFilterInputs((current) => ({
-            ...current,
-            endDate: event.target.value,
-          }))}
-          type="date"
-          value={filterInputs.endDate}
-        />
-        <Select
-          allowClear={isAdmin}
-          disabled={!isAdmin}
-          loading={locationsLoading}
-          onChange={(value) => setFilterInputs((current) => ({
-            ...current,
-            locationId: value,
-          }))}
-          options={locations.map((location) => ({
-            label: location.code ? `${location.code} — ${location.name}` : location.name,
-            value: location.id,
-          }))}
-          placeholder="Tất cả chi nhánh"
-          showSearch
-          optionFilterProp="label"
-          value={filterInputs.locationId}
-        />
-        <Select
-          allowClear
-          onChange={(value) => setFilterInputs((current) => ({
-            ...current,
-            status: value,
-          }))}
-          options={Object.entries(STATUS_CONFIG).map(([value, config]) => ({
-            label: config.label,
-            value,
-          }))}
-          placeholder="Tất cả trạng thái"
-          value={filterInputs.status}
-        />
-        <Button onClick={applyFilters} type="primary">Áp dụng</Button>
-        <Button icon={<ReloadOutlined />} onClick={resetFilters}>Đặt lại</Button>
-      </section>
-
-      <section className="attendance-management-summary-grid">
-        <article className="management-card attendance-summary-card">
-          <TeamOutlined />
-          <div><span>Bản chấm công</span><strong>{summary.total}</strong></div>
-        </article>
-        <article className="management-card attendance-summary-card">
-          <CheckCircleOutlined />
-          <div><span>Đã duyệt</span><strong>{summary.approved}</strong></div>
-        </article>
-        <article className="management-card attendance-summary-card attendance-summary-card--warning">
-          <WarningOutlined />
-          <div><span>Cần chú ý</span><strong>{summary.exceptions}</strong></div>
-        </article>
-        <article className="management-card attendance-summary-card">
-          <ClockCircleOutlined />
-          <div><span>Tổng giờ thực tế</span><strong>{formatMinutes(summary.actualMinutes)}</strong></div>
-        </article>
-      </section>
-
-      <section className="management-card employee-table-card">
-        <div className="table-heading">
-          <div>
-            <strong>Danh sách chấm công</strong>
-            <span>{attendances.length} bản ghi phù hợp bộ lọc</span>
-          </div>
-        </div>
-        <Table
-          columns={columns}
-          dataSource={attendances}
-          loading={loading}
-          locale={{ emptyText: 'Không có bản chấm công phù hợp.' }}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-          rowKey="id"
-          scroll={{ x: 1450 }}
-        />
-      </section>
+      <Tabs
+        activeKey={activeTab}
+        items={tabItems}
+        onChange={(key) => setSearchParams({ tab: key })}
+        style={{ marginTop: 16 }}
+      />
 
       <AttendanceApprovalModal
         attendance={editingAttendance}

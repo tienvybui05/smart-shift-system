@@ -240,7 +240,7 @@ export default function UserManagementPage() {
       title: 'Nhân viên',
       key: 'employee',
       fixed: 'left',
-      width: 220,
+      width: 180,
       render: (_, user) => (
         <div className="employee-cell">
           <strong>{user.fullName}</strong>
@@ -251,7 +251,7 @@ export default function UserManagementPage() {
     {
       title: 'Tài khoản',
       dataIndex: 'username',
-      width: 150,
+      width: 130,
       responsive: ['md'],
       render: (username, user) => (
         <div className="employee-cell employee-cell--normal">
@@ -263,14 +263,14 @@ export default function UserManagementPage() {
     {
       title: 'Vai trò',
       dataIndex: 'roleName',
-      width: 130,
+      width: 110,
       responsive: ['md'],
       render: (roleName) => <Tag color={ROLE_COLORS[roleName]}>{getRoleLabel(roleName)}</Tag>,
     },
     {
       title: 'Nơi làm việc',
       key: 'workplace',
-      width: 190,
+      width: 160,
       responsive: ['lg'],
       render: (_, user) => (
         <div className="employee-cell employee-cell--normal">
@@ -282,14 +282,14 @@ export default function UserManagementPage() {
     {
       title: 'Hợp đồng',
       dataIndex: 'employmentType',
-      width: 135,
+      width: 110,
       responsive: ['xl'],
       render: (type) => EMPLOYMENT_TYPE_LABELS[type] || type,
     },
     {
       title: 'Giờ/tuần',
       key: 'hours',
-      width: 100,
+      width: 90,
       align: 'center',
       responsive: ['xl'],
       render: (_, user) => user.roleName === 'ROLE_EMPLOYEE'
@@ -299,7 +299,7 @@ export default function UserManagementPage() {
     {
       title: 'Đơn giá · hệ số',
       key: 'salary',
-      width: 165,
+      width: 145,
       responsive: ['xl'],
       render: (_, user) => (
         <div className="employee-cell employee-cell--normal">
@@ -317,7 +317,7 @@ export default function UserManagementPage() {
     {
       title: 'Trạng thái',
       dataIndex: 'active',
-      width: 115,
+      width: 100,
       render: (active) => (
         <Tag color={active ? 'success' : 'error'}>{active ? 'Hoạt động' : 'Đã khóa'}</Tag>
       ),
@@ -326,7 +326,7 @@ export default function UserManagementPage() {
       title: 'Thao tác',
       key: 'actions',
       fixed: 'right',
-      width: 135,
+      width: 110,
       align: 'center',
       render: (_, user) => {
         if (!isAdmin) {
@@ -479,7 +479,7 @@ export default function UserManagementPage() {
             onChange: handlePageChange,
           }}
           rowKey="id"
-          scroll={{ x: 1050 }}
+          scroll={{ x: 1135 }}
         />
       </section>
 
@@ -514,3 +514,6 @@ export default function UserManagementPage() {
     </>
   )
 }
+
+
+
