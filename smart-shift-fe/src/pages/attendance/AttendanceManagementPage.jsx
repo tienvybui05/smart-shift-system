@@ -40,6 +40,7 @@ import {
   reviewDevice,
 } from '../../services/employeeDeviceService.js'
 import { getLocations } from '../../services/referenceService.js'
+import { downloadExcel } from '../../services/reportExportService.js'
 
 const STATUS_CONFIG = {
   PRESENT: { label: 'Đúng giờ', color: 'success' },
@@ -117,86 +118,12 @@ function AttendanceStatusTag({ status }) {
   return <Tag color={config.color}>{config.label}</Tag>
 }
 
-function exportAttendancesToCsv(attendances, fileName = 'bang_cham_cong.csv') {
-  if (!attendances || attendances.length === 0) return
-
-  const headers = [
-    'Mã nhân viên',
-    'Họ tên',
-    'Chi nhánh',
-    'Ngày làm',
-    'Ca bắt đầu',
-    'Ca kết thúc',
-    'Giờ vào thực tế',
-    'Giờ ra thực tế',
-    'Giờ công (phút)',
-    'Giờ công (giờ)',
-    'Đi trễ (phút)',
-    'Về sớm (phút)',
-    'Tăng ca (phút)',
-    'Trạng thái',
-    'Thiết bị',
-    'Mạng Wi-Fi',
-    'IP Check-in',
-    'Tên Wi-Fi',
-    'Xác nhận duyệt',
-    'Người duyệt',
-    'Ghi chú',
-  ]
-
-  const rows = attendances.map((item) => [
-    item.employeeCode || '',
-    item.employeeName || '',
-    item.locationName || '',
-    item.workDate || '',
-    formatInstant(item.shiftStartAt, item.timezone),
-    formatInstant(item.shiftEndAt, item.timezone),
-    item.checkInAt ? formatInstant(item.checkInAt, item.timezone) : '',
-    item.checkOutAt ? formatInstant(item.checkOutAt, item.timezone) : '',
-    item.actualMinutes ?? '',
-    item.actualMinutes ? (item.actualMinutes / 60).toFixed(2) : '',
-    item.lateMinutes || 0,
-    item.earlyLeaveMinutes || 0,
-    item.overtimeMinutes || 0,
-    STATUS_CONFIG[item.status]?.label || item.status,
-    item.unverifiedDevice ? 'TB chưa duyệt' : 'Hợp lệ',
-    item.unverifiedWifi ? 'M?ng ch?a x?c minh' : 'Khớp Wi-Fi',
-    item.checkInIpAddress || '',
-    item.checkInWifiSsid || '',
-    item.approvedAt ? 'Đã duyệt' : 'Chưa duyệt',
-    item.approvedByName || '',
-    item.note || '',
-  ])
-
-  const csvContent =
-    '\uFEFF' +
-    [headers, ...rows]
-      .map((row) =>
-        row
-          .map((field) => {
-            const str = String(field ?? '').replace(/"/g, '""')
-            return `"${str}"`
-          })
-          .join(','),
-      )
-      .join('\r\n')
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', fileName)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
 export default function AttendanceManagementPage() {
   const { user } = useAuth()
   const isAdmin = user.role === 'ROLE_ADMIN'
   const defaultRange = getDefaultRange()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [exporting, setExporting] = useState(false)
   const activeTab = searchParams.get('tab') || 'attendances'
 
   const [messageApi, messageContext] = message.useMessage()
@@ -346,14 +273,14 @@ export default function AttendanceManagementPage() {
     setLoading(true)
   }
 
-  function handleExportCsv() {
-    if (attendances.length === 0) {
-      messageApi.info('Không có dữ liệu để xuất file.')
-      return
-    }
-    const fileName = `bang_cham_cong_${filters.startDate}_den_${filters.endDate}.csv`
-    exportAttendancesToCsv(attendances, fileName)
-    messageApi.success('Đã xuất file bảng chấm công thành công.')
+  async function handleExportExcel() {
+    setExporting(true)
+    try {
+      await downloadExcel('attendance', filters)
+      messageApi.success('Đã tải bảng chấm công Excel theo bộ lọc đang áp dụng.')
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error, 'Không xuất được bảng chấm công.'))
+    } finally { setExporting(false) }
   }
 
   function refreshAll() {
@@ -745,11 +672,12 @@ export default function AttendanceManagementPage() {
                 <span>{attendances.length} bản ghi phù hợp bộ lọc</span>
               </div>
               <Button
-                disabled={attendances.length === 0}
+                disabled={loading}
+                loading={exporting}
                 icon={<DownloadOutlined />}
-                onClick={handleExportCsv}
+                onClick={handleExportExcel}
               >
-                Xuất file Excel (CSV)
+                Xuất Excel (.xlsx)
               </Button>
             </div>
             <Table

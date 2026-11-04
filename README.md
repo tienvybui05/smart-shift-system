@@ -178,6 +178,8 @@ Một nhân viên chỉ được xếp khi đáp ứng toàn bộ ràng buộc s
 - Giữ nguyên mọi phân công đã lưu; chỉ bổ sung đến số lượng tối thiểu còn thiếu trong kỳ Nháp.
 - Kết quả trả thêm thuật toán, trạng thái bộ giải, điểm phạt toàn lịch, số vòng ALNS, thời gian và seed.
 - Không gán điểm Greedy cho từng người; trường score của phân công mới là null.
+
+Bảng chấm công và bảng lương hỗ trợ **xuất Excel `.xlsx`** theo bộ lọc và quyền chi nhánh, có sheet chi tiết/tổng hợp, định dạng tiền/giờ và cảnh báo nguồn công cần tính lại. Xem [hướng dẫn xuất Excel](docs/EXCEL_REPORTS.md).
 - OPTIMAL chỉ được báo khi CP-SAT chứng minh tối ưu trên toàn mô hình với phân công cũ cố định.
 - Chỉ số qualityScore vẫn mô tả độ phủ/nguyện vọng, không phải hàm mục tiêu hay optimality gap.
 

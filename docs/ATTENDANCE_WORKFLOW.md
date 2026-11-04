@@ -9,6 +9,7 @@
 5. Chỉ khi được duyệt, giờ công mới thay đổi. Nhân viên nhận thông báo web; nếu Lark đã cấu hình thì dùng cùng kênh thông báo hiện có.
 6. Nút **Lịch sử** cho biết người xử lý, thời điểm, lý do và bản công trước/sau. Nhân viên chỉ xem được công của mình; quản lý xem trong chi nhánh, Admin xem toàn hệ thống.
 7. Nếu công thay đổi sau lần tính lương nháp, bảng lương hiển thị **Cần tính lại công**. Tính lại lương trước khi xác nhận.
+8. Xuất bảng chấm công/bảng lương bằng **Xuất Excel (.xlsx)** theo bộ lọc đã áp dụng; xem [hướng dẫn báo cáo Excel](EXCEL_REPORTS.md).
 
 ## Quy tắc nghiệp vụ
 

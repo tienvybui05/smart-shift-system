@@ -1,5 +1,6 @@
 import {
   CalculatorOutlined,
+  DownloadOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
@@ -29,6 +30,7 @@ import {
   updatePayrollBonus,
 } from '../../services/payrollService.js'
 import { getLocations } from '../../services/referenceService.js'
+import { downloadExcel } from '../../services/reportExportService.js'
 
 function toDateInputValue(date) {
   const year = date.getFullYear()
@@ -83,6 +85,7 @@ export default function PayrollManagementPage() {
   const [filters, setFilters] = useState(filterInputs)
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [editingRecord, setEditingRecord] = useState(null)
 
@@ -176,6 +179,16 @@ export default function PayrollManagementPage() {
     } finally {
       setCalculating(false)
     }
+  }
+
+  async function handleExportExcel() {
+    setExporting(true)
+    try {
+      await downloadExcel('payroll', filters)
+      messageApi.success('Đã tải bảng lương Excel theo bộ lọc đang áp dụng.')
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error, 'Không xuất được bảng lương.'))
+    } finally { setExporting(false) }
   }
 
   async function handleBonus(payload) {
@@ -327,6 +340,9 @@ export default function PayrollManagementPage() {
           <p>Tính theo giờ thực tế × đơn giá theo giờ × hệ số lương + tiền thưởng.</p>
         </div>
         <div className="page-heading-actions">
+          <Button icon={<DownloadOutlined />} loading={exporting} disabled={loading || calculating} onClick={handleExportExcel}>
+            Xuất Excel (.xlsx)
+          </Button>
           <Button
             icon={<ReloadOutlined />}
             loading={loading}

@@ -130,6 +130,55 @@ components:
 security:
   - bearerAuth: []
 paths:
+  /api/attendances/export:
+    get:
+      summary: Xuất bảng chấm công Excel XLSX theo bộ lọc và phạm vi Admin/Manager
+      description: Tối đa 93 ngày và 100000 bản ghi; có sheet thông tin, chi tiết và tổng hợp. File không sửa dữ liệu công.
+      parameters:
+        - $ref: '#/components/parameters/CorrectionStart'
+        - $ref: '#/components/parameters/CorrectionEnd'
+        - in: query
+          name: locationId
+          schema: {type: integer, format: int64, minimum: 1}
+        - in: query
+          name: status
+          schema: {type: string, enum: [PRESENT, LATE, EARLY_LEAVE, ABSENT]}
+      responses:
+        '200':
+          description: File XLSX đính kèm; Cache-Control no-store. Kết quả rỗng vẫn có tiêu đề.
+          headers:
+            Content-Disposition:
+              schema: {type: string}
+              description: attachment; filename=bang_cham_cong_YYYY-MM-DD_YYYY-MM-DD.xlsx
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+        '400': {description: Bộ lọc không hợp lệ hoặc vượt giới hạn xuất}
+        '401': {description: Chưa xác thực}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+  /api/payroll/export:
+    get:
+      summary: Xuất snapshot bảng lương Excel XLSX trong phạm vi Admin/Manager
+      description: Khớp đúng ngày đầu/cuối kỳ như API tra cứu bảng lương. Giữ trạng thái nháp, xác nhận, cần tính lại công; không tự tính lại hoặc xác nhận lương.
+      parameters:
+        - $ref: '#/components/parameters/CorrectionStart'
+        - $ref: '#/components/parameters/CorrectionEnd'
+        - in: query
+          name: locationId
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: File XLSX đính kèm; Cache-Control no-store. Tối đa 100000 bản ghi.
+          headers:
+            Content-Disposition:
+              schema: {type: string}
+              description: attachment; filename=bang_luong_YYYY-MM-DD_YYYY-MM-DD.xlsx
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+        '400': {description: Khoảng ngày không hợp lệ hoặc vượt giới hạn xuất}
+        '401': {description: Chưa xác thực}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
   /api/schedules/generate:
     post:
       summary: Sinh lịch tự động bằng ALNS–CP-SAT
