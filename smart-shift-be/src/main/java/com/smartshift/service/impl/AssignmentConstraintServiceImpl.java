@@ -15,6 +15,7 @@ import com.smartshift.repository.EmployeeAvailabilityRepository;
 import com.smartshift.repository.ShiftAssignmentRepository;
 import com.smartshift.repository.TimeOffRequestRepository;
 import com.smartshift.service.AssignmentConstraintService;
+import com.smartshift.scheduling.ShiftRestPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -153,10 +154,11 @@ public class AssignmentConstraintServiceImpl
                 .toList();
 
         validateTimeConflict(existingAssignments, workShift, violations);
-        validateMinimumRest(
+        if (zoneId != null) validateMinimumRest(
             employee,
             existingAssignments,
             workShift,
+            zoneId,
             violations
         );
 
@@ -373,15 +375,15 @@ public class AssignmentConstraintServiceImpl
         LocalDate weekStart = targetDate.with(
             TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
         );
-        long restMinutes = employee.getMinRestHours()
-            .multiply(BigDecimal.valueOf(60))
-            .longValue();
+        long restSeconds = employee.getMinRestHours()
+            .multiply(BigDecimal.valueOf(3600))
+            .longValueExact();
         Instant rangeStart = weekStart.atStartOfDay(zoneId)
-            .minusMinutes(restMinutes)
+            .minusSeconds(restSeconds)
             .toInstant();
         Instant rangeEnd = weekStart.plusWeeks(1)
             .atStartOfDay(zoneId)
-            .plusMinutes(restMinutes)
+            .plusSeconds(restSeconds)
             .toInstant();
         return shiftAssignmentRepository.findActiveAssignmentsInRange(
             employee.getId(),
@@ -413,24 +415,15 @@ public class AssignmentConstraintServiceImpl
         User employee,
         List<ShiftAssignment> assignments,
         WorkShift targetShift,
+        ZoneId zone,
         List<String> violations
     ) {
         BigDecimal minimumRest = employee.getMinRestHours();
+        long restSeconds = minimumRest.multiply(BigDecimal.valueOf(3600)).longValueExact();
         boolean insufficientRest = assignments.stream().anyMatch(assignment -> {
             WorkShift existingShift = assignment.getWorkShift();
-            if (!existingShift.getEndAt().isAfter(targetShift.getStartAt())) {
-                return durationHours(
-                    existingShift.getEndAt(),
-                    targetShift.getStartAt()
-                ).compareTo(minimumRest) < 0;
-            }
-            if (!targetShift.getEndAt().isAfter(existingShift.getStartAt())) {
-                return durationHours(
-                    targetShift.getEndAt(),
-                    existingShift.getStartAt()
-                ).compareTo(minimumRest) < 0;
-            }
-            return false;
+            return ShiftRestPolicy.insufficientRest(existingShift.getStartAt(), existingShift.getEndAt(),
+                targetShift.getStartAt(), targetShift.getEndAt(), restSeconds, zone);
         });
         if (insufficientRest) {
             violations.add(
@@ -477,11 +470,6 @@ public class AssignmentConstraintServiceImpl
         ).toMinutes();
         long netMinutes = durationMinutes - workShift.getBreakMinutes();
         return BigDecimal.valueOf(netMinutes)
-            .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal durationHours(Instant start, Instant end) {
-        return BigDecimal.valueOf(Duration.between(start, end).toMinutes())
             .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
     }
 

@@ -167,7 +167,7 @@ public final class BenchmarkCli {
         days.add(date);
         for (int i : selected) {
             Demand other = p.demands().get(p.options().get(i).demand());
-            if (HybridScheduleOptimizer.conflict(target, other, worker.restSeconds())) return false;
+            if (HybridScheduleOptimizer.conflict(target, other, worker.restSeconds(), p.zone())) return false;
             LocalDate otherDate = p.date(other);
             if (otherDate.equals(date)) daily += other.hours();
             if (HybridScheduleOptimizer.week(otherDate).equals(week)) weekly += other.hours();

@@ -8,6 +8,8 @@ import datetime as dt
 import math
 import statistics
 
+REST_POLICY = 'same-local-day-daytime-split-v1'
+
 
 def instant(value):
     return dt.datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -60,7 +62,8 @@ def evaluate(problem, selected):
                     violations.append(f'worker {w}: duplicate shift')
                 if starts[a] < ends[b] and ends[a] > starts[b]:
                     violations.append(f'worker {w}: overlap')
-                elif (starts[b] - ends[a]).total_seconds() < workers[w]['restSeconds']:
+                elif not (dates[a] == ends[a].date() == dates[b] == ends[b].date()) and \
+                        (starts[b] - ends[a]).total_seconds() < workers[w]['restSeconds']:
                     violations.append(f'worker {w}: rest limit')
         run, previous = 0, None
         for day in sorted(set(dates[d] for d in ds)):

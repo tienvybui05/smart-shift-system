@@ -43,20 +43,23 @@ Các điều kiện bắt buộc:
 - Không tạo lại cặp nhân viên–ca đã tồn tại ở bất kỳ trạng thái nào (unique DB).
 - Không xếp ca đã bắt đầu.
 
-Ca có giờ bắt đầu/kết thúc cố định. Mô hình dùng các nhóm khoảng thời gian giao nhau
-(clique) với `AtMostOne` thay cho các optional interval/`NoOverlap` của bản đầu.
-Khoảng mỗi ca được kéo dài thêm thời gian nghỉ; khi một ca kết thúc thời gian nghỉ
-đúng lúc ca khác bắt đầu thì hai ca vẫn được phép nối nhau. Các mốc dùng `Instant`,
-giữ độ chính xác thời gian đầu vào. Bộ test đối chiếu mọi tập con trên các ca ngẫu nhiên
-và kiểm tra ranh giới thiếu 1 nanosecond so với thời gian nghỉ.
+Ca có giờ bắt đầu/kết thúc cố định. Mô hình quét các khoảng kéo dài thêm thời gian nghỉ
+để tìm nhóm ứng viên xung đột. Ngoại lệ ca gãy có thể làm nhóm này không còn là clique:
+hai ca ban ngày cùng ngày không trùng giờ được phép cùng chọn. Vì vậy mỗi nhóm được
+tách thành các clique thực sự, phủ mọi cạnh xung đột, rồi mới thêm `AtMostOne`.
+Không áp một `AtMostOne` lên nhóm có cặp ca gãy hợp lệ. Các mốc dùng `Instant`, giữ
+độ chính xác thời gian đầu vào; đủ thời gian nghỉ chính xác thì hợp lệ, thiếu 1 nanosecond
+thì không hợp lệ. Test đối chiếu mọi tập con trên 60 bộ ca ngẫu nhiên ở UTC và múi giờ Việt Nam.
 
 Quy ước tương thích hệ thống:
 - Thời điểm dùng Instant; ngày và tuần theo timezone chi nhánh, tuần bắt đầu thứ Hai.
 - Giờ công mỗi ca = (phút ca - phút nghỉ) / 60, làm tròn 2 chữ số.
   Solver dùng số nguyên bằng giờ công nhân 100, tương thích validator hiện tại.
 - Toàn bộ giờ của ca qua đêm tính vào ngày/tuần bắt đầu ca; chưa chia ca qua nửa đêm.
-- minRestHours hiện áp dụng giữa mọi cặp ca, kể cả ca trong cùng ngày.
-  Chưa thay đổi chính sách này thành ngoại lệ Split Shift.
+- `minRestHours` áp dụng giữa các ca khác ngày và mọi cặp có ca qua đêm.
+  Hai ca nằm trọn trong cùng ngày địa phương được miễn kiểm tra thời gian nghỉ giữa ca,
+  nhưng vẫn phải không trùng giờ và không vượt giờ ngày/tuần. Ca kết thúc đúng nửa đêm
+  không được hưởng ngoại lệ. Xem [chính sách và kiểm thử ca gãy](SPLIT_SHIFT_POLICY.md).
 
 ## Hàm mục tiêu và thang điểm
 

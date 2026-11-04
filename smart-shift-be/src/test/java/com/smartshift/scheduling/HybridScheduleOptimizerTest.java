@@ -218,10 +218,10 @@ class HybridScheduleOptimizerTest {
     }
 
     @Test
-    void intervalCliquesMatchEveryPairwiseFeasibleSubset() {
+    void refinedCliquesMatchEveryPairwiseFeasibleSubset() {
         Random random = new Random(17);
-        for (int trial = 0; trial < 20; trial++) {
-            Worker worker = new Worker(1, 0, 10000, 2400, trial % 2 == 0 ? 0 : 39600, 7, "group");
+        for (int trial = 0; trial < 60; trial++) {
+            Worker worker = new Worker(1, 0, 10000, 2400, (trial % 3) * 39600L, 7, "group");
             List<Demand> demands = new ArrayList<>();
             List<Option> options = new ArrayList<>();
             for (int i = 0; i < 8; i++) {
@@ -229,7 +229,8 @@ class HybridScheduleOptimizerTest {
                 demands.add(new Demand(i+1, start, start.plusSeconds((1+random.nextInt(8))*3600L), 100, 1, 1));
                 options.add(o(0, i, true));
             }
-            var p = problem(List.of(worker), demands, options);
+            var p = new SchedulingProblem(List.of(worker),demands,options,List.of(),
+                trial % 2 == 0 ? ZoneOffset.UTC : ZoneId.of("Asia/Ho_Chi_Minh"),null);
             var cliques = HybridScheduleOptimizer.conflictCliques(p, worker,
                 java.util.stream.IntStream.range(0, 8).boxed().toList());
             for (int mask = 0; mask < 256; mask++) {
@@ -238,9 +239,7 @@ class HybridScheduleOptimizerTest {
                 boolean pairwise = true;
                 for (int a : selected) for (int b : selected) if (a < b) {
                     Demand first = demands.get(a), second = demands.get(b);
-                    boolean separated = !first.end().plusSeconds(worker.restSeconds()).isAfter(second.start())
-                        || !second.end().plusSeconds(worker.restSeconds()).isAfter(first.start());
-                    pairwise &= separated;
+                    pairwise &= !independentConflict(first,second,worker.restSeconds(),p.zone());
                 }
                 boolean byCliques = cliques.stream().allMatch(c -> c.stream().filter(selected::contains).count() <= 1);
                 assertEquals(pairwise, byCliques, "clique/pair mismatch: trial=" + trial + " mask=" + mask);
@@ -370,6 +369,49 @@ class HybridScheduleOptimizerTest {
     private HybridScheduleOptimizer.Result solve(SchedulingProblem p) {
         return new HybridScheduleOptimizer(1, 2, 42).solve(p);
     }
+    @Test
+    void splitShiftsAreAllowedInConstructionAndRestrictedRepair() {
+        var worker=new Worker(1,0,4000,800,39600,6,"cashier");
+        var p=problem(List.of(worker),List.of(d(1,0,4,1),d(2,7,4,1)),List.of(o(0,0,true),o(0,1,true)));
+        var optimizer=new HybridScheduleOptimizer(2,2,42);
+        assertEquals(Set.of(0,1),optimizer.solve(p).selectedOptions());
+        var repair=optimizer.run(optimizer.build(p,Set.of(1),Set.of(0)),1,42,false);
+        assertNotNull(repair);
+        assertEquals(Set.of(0,1),repair.selected());
+    }
+
+    @Test
+    void splitShiftsStillRespectDailyAndWeeklyLimits() {
+        for (var worker:List.of(new Worker(1,0,4000,700,39600,6,"group"),
+                new Worker(1,0,700,800,39600,6,"group"))) {
+            var p=problem(List.of(worker),List.of(d(1,0,4,1),d(2,7,4,1)),List.of(o(0,0,true),o(0,1,true)));
+            assertEquals(1,solve(p).selectedOptions().size());
+        }
+    }
+
+    @Test
+    void splitShiftExemptionUsesBranchDateAndCannotBypassOvernightRest() {
+        var worker=new Worker(1,0,4000,1600,39600,6,"group");
+        Instant morning=Instant.parse("2030-01-06T21:00:00Z"); // 04:00 in Vietnam
+        var p=new SchedulingProblem(List.of(worker),List.of(
+            new Demand(1,morning,morning.plusSeconds(4*3600),400,1,1),
+            new Demand(2,morning.plusSeconds(11*3600),morning.plusSeconds(15*3600),400,1,1)),
+            List.of(o(0,0,true),o(0,1,true)),List.of(),ZoneId.of("Asia/Ho_Chi_Minh"),null);
+        assertEquals(2,solve(p).selectedOptions().size());
+        var night=problem(List.of(worker),List.of(d(1,14,8,1),d(2,23,4,1)),List.of(o(0,0,true),o(0,1,true)));
+        assertEquals(1,solve(night).selectedOptions().size());
+    }
+
+    private static boolean independentConflict(Demand first,Demand second,long seconds,ZoneId zone) {
+        if (first.start().isBefore(second.end()) && second.start().isBefore(first.end())) return true;
+        Set<LocalDate> days=new HashSet<>(List.of(first.start().atZone(zone).toLocalDate(),
+            first.end().atZone(zone).toLocalDate(),second.start().atZone(zone).toLocalDate(),second.end().atZone(zone).toLocalDate()));
+        if (days.size()==1) return false;
+        Duration gap=!first.end().isAfter(second.start()) ? Duration.between(first.end(),second.start())
+            : Duration.between(second.end(),first.start());
+        return gap.compareTo(Duration.ofSeconds(seconds))<0;
+    }
+
     private SchedulingProblem problem(List<Worker> workers, List<Demand> demands, List<Option> options) {
         return new SchedulingProblem(workers, demands, options, List.of(), ZoneOffset.UTC, null);
     }
@@ -405,12 +447,7 @@ class HybridScheduleOptimizerTest {
             weekly.values().forEach(value -> assertTrue(value <= worker.maximumHours()));
             for (int a = 0; a < selected.size(); a++) for (int b = a + 1; b < selected.size(); b++) {
                 Demand first = selected.get(a), second = selected.get(b);
-                boolean overlap = first.start().isBefore(second.end()) && second.start().isBefore(first.end());
-                assertFalse(overlap);
-                long gap = first.end().isAfter(second.start())
-                    ? Duration.between(second.end(), first.start()).getSeconds()
-                    : Duration.between(first.end(), second.start()).getSeconds();
-                assertTrue(gap >= worker.restSeconds());
+                assertFalse(independentConflict(first,second,worker.restSeconds(),p.zone()));
             }
         }
     }

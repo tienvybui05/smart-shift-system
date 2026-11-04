@@ -163,7 +163,7 @@ Một nhân viên chỉ được xếp khi đáp ứng toàn bộ ràng buộc s
 - Có lịch rảnh bao phủ toàn bộ thời gian ca.
 - Không có đơn nghỉ đã được duyệt.
 - Không trùng với ca đã được phân công.
-- Đủ thời gian nghỉ tối thiểu giữa hai ca.
+- Đủ thời gian nghỉ tối thiểu giữa các ca khác ngày hoặc có ca qua đêm; ca gãy nằm trọn cùng ngày được phép khi không trùng giờ và không vượt giờ ngày/tuần. Xem [quy tắc ca gãy/Clopening](docs/SPLIT_SHIFT_POLICY.md).
 - Không vượt số giờ tối đa trong ngày hoặc tuần.
 - Ca nằm trong kỳ lịch và có thời gian nghỉ hợp lệ.
 

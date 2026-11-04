@@ -350,6 +350,55 @@ class AssignmentConstraintServiceImplTest {
         assertTrue(hasViolation(result.violations(), "toàn bộ thời gian"));
     }
 
+    @Test
+    void permitsSplitShiftInSharedValidatorAndPreparedSnapshot() {
+        WorkShift morning=workShift(5L,location,MONDAY,LocalTime.of(8,0),MONDAY,LocalTime.of(12,0));
+        targetShift=workShift(4L,location,MONDAY,LocalTime.of(15,0),MONDAY,LocalTime.of(19,0));
+        var windows=List.of(availability(MONDAY,LocalTime.of(8,0),LocalTime.of(19,0),AvailabilityType.AVAILABLE));
+        var existing=List.of(assignment(morning));
+        stubEvaluation(windows,existing,false);
+        var result=constraintService.evaluate(employee,targetShift,position);
+        assertTrue(result.eligible(),result.violations().toString());
+        assertEquals(new BigDecimal("8.00"),result.projectedDailyHours());
+        when(availabilityRepository.findAllByUserIdInAndAvailableDateBetween(anyList(),any(),any())).thenReturn(windows);
+        var prepared=constraintService.prepare(List.of(employee),List.of(targetShift),existing);
+        assertEquals(result,prepared.evaluate(employee,targetShift,position));
+    }
+
+    @Test
+    void splitShiftStillCountsTowardDailyAndWeeklyCaps() {
+        targetShift=workShift(4L,location,MONDAY,LocalTime.of(15,0),MONDAY,LocalTime.of(20,0));
+        WorkShift morning=workShift(5L,location,MONDAY,LocalTime.of(8,0),MONDAY,LocalTime.of(12,0));
+        employee.setMaxHoursPerWeek(new BigDecimal("8.00"));
+        stubEvaluation(List.of(availability(MONDAY,LocalTime.of(8,0),LocalTime.of(20,0),AvailabilityType.AVAILABLE)),
+            List.of(assignment(morning)),false);
+        var result=constraintService.evaluate(employee,targetShift,position);
+        assertTrue(hasViolation(result.violations(),"giờ làm trong ngày"));
+        assertTrue(hasViolation(result.violations(),"giờ làm trong tuần"));
+        assertFalse(hasViolation(result.violations(),"giờ nghỉ giữa hai ca"));
+    }
+
+    @Test
+    void overnightShiftIsNotExemptEvenWhenItStartsOnSameDate() {
+        targetShift=workShift(4L,location,MONDAY,LocalTime.of(22,0),MONDAY.plusDays(1),LocalTime.of(6,0));
+        WorkShift morning=workShift(5L,location,MONDAY,LocalTime.of(8,0),MONDAY,LocalTime.of(12,0));
+        stubEvaluation(List.of(availability(MONDAY,LocalTime.of(22,0),LocalTime.of(23,59),AvailabilityType.AVAILABLE),
+            availability(MONDAY.plusDays(1),LocalTime.MIDNIGHT,LocalTime.of(6,0),AvailabilityType.AVAILABLE)),
+            List.of(assignment(morning)),false);
+        assertTrue(hasViolation(constraintService.evaluate(employee,targetShift,position).violations(),"giờ nghỉ giữa hai ca"));
+    }
+
+    @Test
+    void exactRestIsAllowedAndSubMinuteShortfallIsRejected() {
+        employee.setMinRestHours(new BigDecimal("11.00"));
+        WorkShift previous=workShift(5L,location,MONDAY.minusDays(1),LocalTime.of(18,0),MONDAY.minusDays(1),LocalTime.of(21,0));
+        stubEvaluation(List.of(availability(MONDAY,LocalTime.of(8,0),LocalTime.of(16,0),AvailabilityType.AVAILABLE)),
+            List.of(assignment(previous)),false);
+        assertTrue(constraintService.evaluate(employee,targetShift,position).eligible());
+        previous.setEndAt(previous.getEndAt().plusNanos(1));
+        assertTrue(hasViolation(constraintService.evaluate(employee,targetShift,position).violations(),"giờ nghỉ giữa hai ca"));
+    }
+
     private void stubEvaluation(
         List<EmployeeAvailability> availabilities,
         List<ShiftAssignment> assignments,

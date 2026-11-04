@@ -130,7 +130,8 @@ public class HybridPlanningService {
         long rest = employee.getMinRestHours().multiply(BigDecimal.valueOf(3600)).longValueExact();
         return fixed.stream().filter(a -> a.workerId() == employee.getId())
             .anyMatch(a -> HybridScheduleOptimizer.conflict(target,
-                new Demand(a.shiftId(), a.start(), a.end(), a.hours(), 1, 1), rest));
+                new Demand(a.shiftId(), a.start(), a.end(), a.hours(), 1, 1), rest,
+                ZoneId.of(shift.getSchedulePeriod().getLocation().getTimezone())));
     }
     public static long units(BigDecimal hours) {
         return hours.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).longValueExact();

@@ -14,7 +14,7 @@ import statistics
 import subprocess
 import time
 
-from evaluate import evaluate
+from evaluate import evaluate, REST_POLICY
 from prepare_data import HERE, ROOT, dump
 
 ALGORITHMS = ['GREEDY_SHARED_CONSTRAINTS', 'CP_SAT', 'ALNS_CP_SAT']
@@ -152,12 +152,13 @@ def run(args):
             for seed in ([seeds[0]] if algorithm == ALGORITHMS[0] else seeds)]
     random.Random(args.order_seed).shuffle(jobs)
     source_files = [backend/'src/main/java/com/smartshift/scheduling/HybridScheduleOptimizer.java',
+                    backend/'src/main/java/com/smartshift/scheduling/ShiftRestPolicy.java',
                     backend/'src/main/java/com/smartshift/scheduling/SchedulingProblem.java', backend/'pom.xml',
                     backend/'src/test/java/com/smartshift/benchmark/BenchmarkCli.java',
                     HERE/'prepare_data.py', HERE/'evaluate.py', HERE/'run_benchmarks.py']
     metadata = dict(startedAt=dt.datetime.now(dt.timezone.utc).isoformat(), platform=platform.platform(),
                     processor=platform.processor(), logicalCpuCount=os.cpu_count(), javaHome=str(home),
-                    budgets=budgets, seeds=seeds, orderSeed=args.order_seed,
+                    budgets=budgets, seeds=seeds, orderSeed=args.order_seed, restPolicy=REST_POLICY,
                     datasets={p.name: sha(p) for p in paths}, sources={p.name: sha(p) for p in source_files},
                     dependencyClasspathSha256=sha(classpath_file) if not args.docker else None,
                     datasetManifest=json.loads((HERE/'data/manifest.json').read_text(encoding='utf-8')),

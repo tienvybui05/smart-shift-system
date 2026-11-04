@@ -10,6 +10,8 @@ import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -352,8 +354,8 @@ public class HybridScheduleOptimizer {
                 cp.addAbsEquality(deviation, LinearExpr.newBuilder().add(load).add(base - target));
                 addPenalty(soft, deviation, 1, maxDeviation, bound);
             }
-            // Starts/ends are fixed: maximal interval cliques encode exactly the same
-            // overlap/rest exclusions without optional scheduling intervals.
+            // Interval candidates are refined into valid conflict cliques, preserving
+            // the branch-local split-shift exemption without optional intervals.
             List<Integer> liveOptions = options.stream().filter(i -> x[i] != null).toList();
             for (List<Integer> clique : conflictCliques(p, worker, liveOptions)) {
                 cp.addAtMostOne(clique.stream().map(i -> x[i]).toArray(Literal[]::new));
@@ -453,6 +455,41 @@ public class HybridScheduleOptimizer {
     private record Event(Instant time, boolean start, int option) {}
 
     static List<List<Integer>> conflictCliques(SchedulingProblem p, Worker worker, List<Integer> options) {
+        Set<List<Integer>> result = new LinkedHashSet<>();
+        for (List<Integer> candidates : extendedIntervalCliques(p, worker, options)) {
+            int size = candidates.size();
+            boolean[][] edges = new boolean[size][size];
+            boolean complete = true;
+            for (int a = 0; a < size; a++) for (int b = a + 1; b < size; b++) {
+                Demand first = p.demands().get(p.options().get(candidates.get(a)).demand());
+                Demand second = p.demands().get(p.options().get(candidates.get(b)).demand());
+                edges[a][b] = edges[b][a] = conflict(first, second, worker.restSeconds(), p.zone());
+                complete &= edges[a][b];
+            }
+            if (complete) {
+                result.add(candidates.stream().sorted().toList());
+                continue;
+            }
+            // Cover every remaining edge by genuine cliques. Removing same-day rest
+            // edges can destroy the interval-graph property; do not use the broad
+            // candidate clique as one AtMostOne constraint in that case.
+            boolean[][] covered = new boolean[size][size];
+            for (int a = 0; a < size; a++) for (int b = a + 1; b < size; b++) {
+                if (!edges[a][b] || covered[a][b]) continue;
+                List<Integer> members = new ArrayList<>(List.of(a, b));
+                for (int k = b + 1; k < size; k++) {
+                    boolean compatible = true;
+                    for (int member : members) compatible &= edges[member][k];
+                    if (compatible) members.add(k);
+                }
+                for (int left : members) for (int right : members) covered[left][right] = true;
+                result.add(members.stream().map(candidates::get).sorted().toList());
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<List<Integer>> extendedIntervalCliques(SchedulingProblem p, Worker worker, List<Integer> options) {
         List<Event> events = new ArrayList<>();
         for (int i : options) {
             Demand demand = p.demands().get(p.options().get(i).demand());
@@ -490,13 +527,9 @@ public class HybridScheduleOptimizer {
     public static LocalDate week(LocalDate date) {
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
-    public static boolean conflict(Demand a, Demand b, long restSeconds) {
+    public static boolean conflict(Demand a, Demand b, long restSeconds, ZoneId zone) {
         if (a.shiftId() == b.shiftId()) return true;
-        if (a.start().isBefore(b.end()) && a.end().isAfter(b.start())) return true;
-        long gap = !a.end().isAfter(b.start())
-            ? Duration.between(a.end(), b.start()).getSeconds()
-            : Duration.between(b.end(), a.start()).getSeconds();
-        return gap < restSeconds;
+        return ShiftRestPolicy.conflicts(a.start(), a.end(), b.start(), b.end(), restSeconds, zone);
     }
     private static double remaining(long deadline) {
         return (deadline - System.nanoTime()) / 1_000_000_000.0;

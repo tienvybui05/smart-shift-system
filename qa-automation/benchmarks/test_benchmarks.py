@@ -32,6 +32,37 @@ class BenchmarkTests(unittest.TestCase):
         for expected in ('week', 'rest', 'consecutive'):
             self.assertIn(expected, details)
 
+    def split_fixture(self, first_start, first_end, second_start, second_end):
+        p = self.fixture()
+        p['demands'] = [dict(shiftId=i+1, start=start, end=end, hours=400, missing=1, priority=1)
+                        for i, (start, end) in enumerate([(first_start, first_end), (second_start, second_end)])]
+        p['options'] = [dict(worker=0, demand=d, preferred=True, dailyBase=0, weeklyBase=0, costThousands=100)
+                        for d in (0, 1)]
+        p['workers'][0].update(dailyHours=800, maximumHours=4000, restSeconds=11*3600)
+        return p
+
+    def test_same_day_split_does_not_relax_hour_or_overlap_constraints(self):
+        p = self.split_fixture('2030-01-07T08:00:00Z', '2030-01-07T12:00:00Z',
+                               '2030-01-07T15:00:00Z', '2030-01-07T19:00:00Z')
+        self.assertTrue(evaluate(p, [0, 1])['valid'])
+        p['workers'][0]['dailyHours'] = 700
+        self.assertTrue(any('hour limit' in s for s in evaluate(p, [0, 1])['violations']))
+        p['demands'][1].update(start='2030-01-07T11:00:00Z', end='2030-01-07T15:00:00Z')
+        self.assertTrue(any('overlap' in s for s in evaluate(p, [0, 1])['violations']))
+
+    def test_overnight_and_midnight_shifts_never_get_split_exemption(self):
+        for start, end in [('2030-01-07T22:00:00Z', '2030-01-08T06:00:00Z'),
+                           ('2030-01-07T20:00:00Z', '2030-01-08T00:00:00Z')]:
+            p = self.split_fixture(start, end, '2030-01-08T07:00:00Z', '2030-01-08T11:00:00Z')
+            self.assertTrue(any('rest limit' in s for s in evaluate(p, [0, 1])['violations']))
+
+    def test_exact_cross_day_rest_boundary(self):
+        p = self.split_fixture('2030-01-07T18:00:00Z', '2030-01-07T22:00:00Z',
+                               '2030-01-08T09:00:00Z', '2030-01-08T13:00:00Z')
+        self.assertTrue(evaluate(p, [0, 1])['valid'])
+        p['demands'][1]['start'] = '2030-01-08T08:59:59Z'
+        self.assertTrue(any('rest limit' in s for s in evaluate(p, [0, 1])['violations']))
+
     def test_metric_denominators_and_cost_units(self):
         p = self.fixture()
         p['options'] = [dict(worker=0, demand=0, preferred=True, dailyBase=0, weeklyBase=0, costThousands=188)]
@@ -94,7 +125,7 @@ SECTION_COVER
         self.assertEqual(10, result['after_missing'])
 
     def test_before_after_rejects_different_inputs_or_iteration_limits(self):
-        for key in ('datasets', 'hybridMaxIterations'):
+        for key in ('datasets', 'hybridMaxIterations', 'restPolicy'):
             with self.assertRaisesRegex(ValueError, key):
                 compare({key: 'before'}, {key: 'after'}, [], [])
 

@@ -8,7 +8,7 @@ from run_benchmarks import write_csv
 
 
 def compare(before_config, after_config, before_rows, after_rows):
-    for key in ('datasets', 'budgets', 'seeds', 'hybridMaxIterations', 'cpSatSearchWorkers', 'containerCpuLimit'):
+    for key in ('datasets', 'budgets', 'seeds', 'hybridMaxIterations', 'cpSatSearchWorkers', 'containerCpuLimit', 'restPolicy'):
         if before_config.get(key) != after_config.get(key):
             raise ValueError(f'Cannot pair runs: {key} differs')
 
