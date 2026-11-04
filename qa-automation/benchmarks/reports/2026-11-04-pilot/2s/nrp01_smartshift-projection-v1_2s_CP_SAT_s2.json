@@ -1,0 +1,13 @@
+{
+  "selectedOptions" : [ 93, 94, 95, 97, 98, 100, 0, 1, 2, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23, 24, 33, 35, 36, 37, 40, 42, 46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 66, 68, 70, 71, 75, 79, 80, 81, 82, 85, 87, 88, 90, 92 ],
+  "status" : "OPTIMAL",
+  "iterations" : 0,
+  "internalObjective" : 104484911,
+  "operatorWeights" : [ 1.0, 1.0, 1.0 ],
+  "algorithm" : "CP_SAT",
+  "seed" : 2,
+  "timeLimitSeconds" : 2.0,
+  "solverWallMillis" : 369.758747,
+  "javaVersion" : "17.0.21",
+  "os" : "Linux amd64"
+}

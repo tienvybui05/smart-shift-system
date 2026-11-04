@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:17-jdk-noble AS build
 
 WORKDIR /workspace
 
@@ -10,10 +10,10 @@ RUN ./mvnw dependency:go-offline -B
 COPY src src
 RUN ./mvnw clean package -DskipTests -B && cp target/*.jar target/app.jar
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-noble
 
 WORKDIR /app
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN groupadd --system spring && useradd --system --gid spring spring
 USER spring:spring
 
 COPY --from=build /workspace/target/app.jar app.jar

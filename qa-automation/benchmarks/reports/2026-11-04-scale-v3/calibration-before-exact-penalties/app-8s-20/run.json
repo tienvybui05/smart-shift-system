@@ -1,0 +1,188 @@
+{
+  "startedAt": "2026-11-04T08:28:44.256175+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "logicalCpuCount": 16,
+  "javaHome": "None",
+  "budgets": [
+    8.0
+  ],
+  "seeds": [
+    42
+  ],
+  "orderSeed": 42,
+  "datasets": {
+    "nrp03_smartshift-projection-v1.json": "b66f5f8942e5c96429eb40d31293fe53bc4fac61ec636ddd5cbbd748b3a1011c",
+    "synthetic_300_28_balanced_s42.json": "af7e6961de132c84d440628f1a707599c0a07f2326d4068812b3e3e01729adb8",
+    "synthetic_30_14_shortage_s42.json": "e5ee0bf3b5fbfc75588086a589a9eae3cac70e91f7a9fc70911932519967c4dc"
+  },
+  "sources": {
+    "HybridScheduleOptimizer.java": "c509977afb4a51e06d4531c2ab5d50cff1d17a3dfc2e1d608bfcbd2e668c88a6",
+    "SchedulingProblem.java": "9ded0499372aab5f88eca0eaf13fc0c8049a2230bca31af7267aca958de7d066",
+    "pom.xml": "947cdd694d17d0cbe0fe8457dd84227ea6280ad7b7fdada26ce5bc442537447e",
+    "BenchmarkCli.java": "85ff7195eb10ac406aff3aedafd29c3ffe74f01cf5702866431a8392edf96a2f",
+    "prepare_data.py": "827c9fffe7a9b051c874ff4032fc829975e0b9a45afa39d376d3541fab64a7b5",
+    "evaluate.py": "63e3450de622c7865dca04f6da51a6d1c6080c6c8f65494777d0c3c061a1703b",
+    "run_benchmarks.py": "4eb66bc8a6596fd15a779fdaa849da7e9dfca35ab3501add6bf917066c8f2418"
+  },
+  "dependencyClasspathSha256": null,
+  "datasetManifest": {
+    "preparedAt": "2026-11-04T07:03:36.859833+00:00",
+    "files": [
+      {
+        "name": "nrp01_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance1.txt",
+        "rawSha256": "f982418dfd05e44e3738656d2da18e751bf9b7741d36d299dd394d79c275af64",
+        "employees": 8,
+        "demands": 14,
+        "options": 104,
+        "normalizedFile": "data/normalized/nrp01_smartshift-projection-v1.json"
+      },
+      {
+        "name": "nrp02_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance2.txt",
+        "rawSha256": "66f4ceb916ade9edd93eade3e858fb9e7c5586aa47be4696309a680c9f159a29",
+        "employees": 14,
+        "demands": 28,
+        "options": 312,
+        "normalizedFile": "data/normalized/nrp02_smartshift-projection-v1.json"
+      },
+      {
+        "name": "nrp03_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance3.txt",
+        "rawSha256": "dba847106a84a6f9dfeb282278c3668fb681c52cb353b0ebfde5195eb9e98286",
+        "employees": 20,
+        "demands": 42,
+        "options": 598,
+        "normalizedFile": "data/normalized/nrp03_smartshift-projection-v1.json"
+      },
+      {
+        "name": "nrp08_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance8.txt",
+        "rawSha256": "99360417e9036c8a3d2dc82cb2ca20ad97201d89392702a6d12deb313b7344e8",
+        "employees": 30,
+        "demands": 112,
+        "options": 2158,
+        "normalizedFile": "data/normalized/nrp08_smartshift-projection-v1.json"
+      },
+      {
+        "name": "nrp11_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance11.txt",
+        "rawSha256": "fe8840a088a921c354f81c051b2fd5f5f4d0b56ce5b8517ab776c3184068cb0d",
+        "employees": 50,
+        "demands": 168,
+        "options": 5304,
+        "normalizedFile": "data/normalized/nrp11_smartshift-projection-v1.json"
+      },
+      {
+        "name": "nrp13_smartshift-projection-v1",
+        "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance13.txt",
+        "rawSha256": "d5784888aefd7f39a113caa1f77ef5afb2b45008007c1bc96ff8aa752c0046bd",
+        "employees": 120,
+        "demands": 504,
+        "options": 39936,
+        "normalizedFile": "data/normalized/nrp13_smartshift-projection-v1.json"
+      },
+      {
+        "name": "synthetic_30_14_balanced_s42",
+        "sourceUrl": null,
+        "employees": 30,
+        "demands": 126,
+        "options": 1115,
+        "normalizedFile": "data/normalized/synthetic_30_14_balanced_s42.json"
+      },
+      {
+        "name": "synthetic_30_14_shortage_s42",
+        "sourceUrl": null,
+        "employees": 30,
+        "demands": 126,
+        "options": 1115,
+        "normalizedFile": "data/normalized/synthetic_30_14_shortage_s42.json"
+      },
+      {
+        "name": "synthetic_30_14_tight_s42",
+        "sourceUrl": null,
+        "employees": 30,
+        "demands": 126,
+        "options": 820,
+        "normalizedFile": "data/normalized/synthetic_30_14_tight_s42.json"
+      },
+      {
+        "name": "synthetic_100_14_balanced_s42",
+        "sourceUrl": null,
+        "employees": 100,
+        "demands": 126,
+        "options": 3687,
+        "normalizedFile": "data/normalized/synthetic_100_14_balanced_s42.json"
+      },
+      {
+        "name": "synthetic_100_14_shortage_s42",
+        "sourceUrl": null,
+        "employees": 100,
+        "demands": 126,
+        "options": 3687,
+        "normalizedFile": "data/normalized/synthetic_100_14_shortage_s42.json"
+      },
+      {
+        "name": "synthetic_100_14_tight_s42",
+        "sourceUrl": null,
+        "employees": 100,
+        "demands": 126,
+        "options": 2734,
+        "normalizedFile": "data/normalized/synthetic_100_14_tight_s42.json"
+      },
+      {
+        "name": "synthetic_300_28_balanced_s42",
+        "sourceUrl": null,
+        "employees": 300,
+        "demands": 252,
+        "options": 22153,
+        "normalizedFile": "data/normalized/synthetic_300_28_balanced_s42.json"
+      },
+      {
+        "name": "synthetic_300_28_shortage_s42",
+        "sourceUrl": null,
+        "employees": 300,
+        "demands": 252,
+        "options": 22153,
+        "normalizedFile": "data/normalized/synthetic_300_28_shortage_s42.json"
+      },
+      {
+        "name": "synthetic_300_28_tight_s42",
+        "sourceUrl": null,
+        "employees": 300,
+        "demands": 252,
+        "options": 16470,
+        "normalizedFile": "data/normalized/synthetic_300_28_tight_s42.json"
+      }
+    ],
+    "sourceIndex": "https://www.schedulingbenchmarks.org/nrp/index.html",
+    "formatGuide": "https://www.schedulingbenchmarks.org/nrp/instances1_24.html",
+    "greedyReference": {
+      "revision": "0d9bf086e1b66dcc5b353ac8cdc1f9b6781f8234",
+      "repositoryPath": "smart-shift-be/src/main/java/com/smartshift/service/impl/AutoScheduleServiceImpl.java",
+      "sha256": "b9b26f42ef258180a0bb37330046614fad1d0f0550b9fdc8daa598bd45435593"
+    }
+  },
+  "greedyRunsPerCase": 1,
+  "cpSatSearchWorkers": 1,
+  "hybridMaxIterations": 20,
+  "timing": "solver: model/search incl. Java class initialization, excludes native loading; process: entire JVM",
+  "jobs": 9,
+  "dockerImage": "smart-shift-benchmark:scale-v3",
+  "dockerInspect": {
+    "Id": "sha256:5252e2ee89816925cea262a1a4d48654125e8beb46861aef18f5982e449bd0c9",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Created": "2026-11-04T08:28:27.253423791Z"
+  },
+  "dockerInfo": {
+    "NCPU": 16,
+    "MemTotal": 8161751040,
+    "OperatingSystem": "Docker Desktop",
+    "ServerVersion": "29.6.2"
+  },
+  "containerCpuLimit": 1,
+  "finishedAt": "2026-11-04T08:29:29.748391+00:00",
+  "failedRuns": 0
+}

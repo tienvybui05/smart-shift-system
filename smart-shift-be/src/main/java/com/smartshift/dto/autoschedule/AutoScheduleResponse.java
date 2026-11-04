@@ -22,7 +22,8 @@ public record AutoScheduleResponse(
     BigDecimal qualityScore,
     List<String> warnings,
     List<AutoScheduleAssignmentResponse> assignments,
-    List<AutoScheduleShortageResponse> shortages
+    List<AutoScheduleShortageResponse> shortages,
+    OptimizationSummary optimization
 ) {
 
     public AutoScheduleResponse {

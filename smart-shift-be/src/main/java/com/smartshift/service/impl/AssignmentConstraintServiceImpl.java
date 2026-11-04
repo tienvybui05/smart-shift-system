@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Set;
 
 @Service
@@ -72,6 +74,36 @@ public class AssignmentConstraintServiceImpl
         Position requiredPosition,
         Collection<Long> excludedAssignmentIds
     ) {
+        return evaluateLoaded(employee, workShift, requiredPosition, excludedAssignmentIds, null, null, null);
+    }
+
+    @Override
+    public BatchEvaluator prepare(List<User> employees, List<WorkShift> shifts,
+                                  List<ShiftAssignment> assignments) {
+        if (employees.isEmpty() || shifts.isEmpty()) return this::evaluate;
+        List<Long> ids = employees.stream().map(User::getId).toList();
+        Instant start = shifts.stream().map(WorkShift::getStartAt).min(Instant::compareTo).orElseThrow();
+        Instant end = shifts.stream().map(WorkShift::getEndAt).max(Instant::compareTo).orElseThrow();
+        ZoneId zone = ZoneId.of(shifts.get(0).getSchedulePeriod().getLocation().getTimezone());
+        Map<Long, List<EmployeeAvailability>> availability = availabilityRepository
+            .findAllByUserIdInAndAvailableDateBetween(ids, start.atZone(zone).toLocalDate(), end.atZone(zone).toLocalDate())
+            .stream().collect(Collectors.groupingBy(a -> a.getUser().getId()));
+        Map<Long, List<com.smartshift.entity.TimeOffRequest>> timeOff = timeOffRequestRepository
+            .findAllByUserIdInAndStatusAndStartAtLessThanAndEndAtGreaterThan(ids, TimeOffStatus.APPROVED, end, start)
+            .stream().collect(Collectors.groupingBy(a -> a.getUser().getId()));
+        Map<Long, List<ShiftAssignment>> work = assignments.stream()
+            .collect(Collectors.groupingBy(a -> a.getUser().getId()));
+        return (employee, shift, position) -> evaluateLoaded(employee, shift, position, Set.of(),
+            availability.getOrDefault(employee.getId(), List.of()),
+            timeOff.getOrDefault(employee.getId(), List.of()),
+            work.getOrDefault(employee.getId(), List.of()));
+    }
+
+    private AssignmentConstraintResult evaluateLoaded(
+        User employee, WorkShift workShift, Position requiredPosition, Collection<Long> excludedAssignmentIds,
+        List<EmployeeAvailability> availabilitySnapshot,
+        List<com.smartshift.entity.TimeOffRequest> timeOffSnapshot, List<ShiftAssignment> assignmentSnapshot
+    ) {
         List<String> violations = new ArrayList<>();
         validateEmployee(employee, workShift, requiredPosition, violations);
 
@@ -80,12 +112,13 @@ public class AssignmentConstraintServiceImpl
             validateShiftInsidePeriod(workShift, zoneId, violations);
         }
 
-        if (timeOffRequestRepository.existsOverlappingRequest(
+        if (timeOffSnapshot == null ? timeOffRequestRepository.existsOverlappingRequest(
             employee.getId(),
             List.of(TimeOffStatus.APPROVED),
             workShift.getStartAt(),
             workShift.getEndAt()
-        )) {
+        ) : timeOffSnapshot.stream().anyMatch(request ->
+            overlaps(request.getStartAt(), request.getEndAt(), workShift.getStartAt(), workShift.getEndAt()))) {
             violations.add(
                 "Nhân viên có đơn nghỉ đã được duyệt trong thời gian của ca"
             );
@@ -96,7 +129,8 @@ public class AssignmentConstraintServiceImpl
             availabilityType = findAvailabilityCoverage(
                 employee,
                 workShift,
-                zoneId
+                zoneId,
+                availabilitySnapshot
             );
             if (availabilityType == null) {
                 violations.add(
@@ -107,13 +141,13 @@ public class AssignmentConstraintServiceImpl
 
         List<ShiftAssignment> existingAssignments = zoneId == null
             ? List.of()
-            : loadAssignmentsForRules(employee, workShift, zoneId).stream()
+            : (assignmentSnapshot == null ? loadAssignmentsForRules(employee, workShift, zoneId) : assignmentSnapshot).stream()
                 .filter(assignment -> assignment.getWorkShift().getStatus()
                     != WorkShiftStatus.CANCELLED)
                 .filter(assignment -> !assignment.getWorkShift().getId().equals(
                     workShift.getId()
                 ))
-                .filter(assignment -> !excludedAssignmentIds.contains(
+                .filter(assignment -> assignment.getId() == null || !excludedAssignmentIds.contains(
                     assignment.getId()
                 ))
                 .toList();
@@ -246,11 +280,12 @@ public class AssignmentConstraintServiceImpl
     private AvailabilityType findAvailabilityCoverage(
         User employee,
         WorkShift workShift,
-        ZoneId zoneId
+        ZoneId zoneId,
+        List<EmployeeAvailability> snapshot
     ) {
         ZonedDateTime localStart = workShift.getStartAt().atZone(zoneId);
         ZonedDateTime localEnd = workShift.getEndAt().atZone(zoneId);
-        List<EmployeeAvailability> availabilities = availabilityRepository
+        List<EmployeeAvailability> availabilities = snapshot != null ? snapshot : availabilityRepository
             .findAllByUserIdAndAvailableDateBetweenOrderByAvailableDateAscStartTimeAsc(
                 employee.getId(),
                 localStart.toLocalDate(),

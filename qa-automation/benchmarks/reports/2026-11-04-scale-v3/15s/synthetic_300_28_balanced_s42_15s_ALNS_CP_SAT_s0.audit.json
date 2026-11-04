@@ -1,0 +1,16 @@
+{
+  "valid": true,
+  "violations": [],
+  "hardViolations": 0,
+  "required": 3780,
+  "assigned": 3780,
+  "missing": 0,
+  "priorityMissing": 0,
+  "coveragePercent": 100.0,
+  "preferredPercent": 87.3015873015873,
+  "costVnd": 846030000,
+  "minimumDeficitHours": 6449.0,
+  "overtimeHours": 1199.0,
+  "fairnessUtilizationStd": 16.43723889003069,
+  "softPenalty": 3362030
+}

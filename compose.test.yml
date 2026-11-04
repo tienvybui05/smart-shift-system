@@ -1,0 +1,56 @@
+name: smart-shift-e2e
+
+# Isolated demo/E2E stack. Never mounts the application's existing database volume.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: smart-shift-e2e-postgres
+    environment:
+      POSTGRES_DB: smart_shift_e2e
+      POSTGRES_USER: smart_shift_test
+      POSTGRES_PASSWORD: local_e2e_only
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - e2e_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart_shift_test -d smart_shift_e2e"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: smart-shift-e2e-backend:local
+    build: ./smart-shift-be
+    container_name: smart-shift-e2e-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smart_shift_e2e
+      SPRING_DATASOURCE_USERNAME: smart_shift_test
+      SPRING_DATASOURCE_PASSWORD: local_e2e_only
+      JWT_SECRET: local-e2e-jwt-secret-not-for-production-2026
+      JWT_ACCESS_TOKEN_EXPIRATION: PT4H
+      BOOTSTRAP_ADMIN_ENABLED: "true"
+      BOOTSTRAP_ADMIN_USERNAME: admin
+      BOOTSTRAP_ADMIN_PASSWORD: Demo@123456
+      LARK_ENABLED: "false"
+      LARK_APP_ENABLED: "false"
+      SCHEDULING_TIME_LIMIT_SECONDS: "8"
+      SCHEDULING_MAX_ITERATIONS: "20"
+      SCHEDULING_RANDOM_SEED: "42"
+    ports:
+      - "127.0.0.1:18080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: smart-shift-e2e-frontend:local
+    build: ./smart-shift-fe
+    container_name: smart-shift-e2e-frontend
+    ports:
+      - "127.0.0.1:13000:80"
+    depends_on:
+      - backend
+
+volumes:
+  e2e_postgres_data:

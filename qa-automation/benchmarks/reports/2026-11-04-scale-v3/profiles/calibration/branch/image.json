@@ -1,0 +1,6 @@
+{
+  "image": "smart-shift-benchmark:branch-v3",
+  "imageId": "sha256:9017f20084d92f2a1437ea2d5495ea0471fe857ee9d0681bb9029448bbde40f8",
+  "phase": "branch",
+  "calibrationOnly": true
+}

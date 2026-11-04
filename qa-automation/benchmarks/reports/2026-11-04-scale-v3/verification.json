@@ -1,0 +1,16 @@
+{
+  "runs": 54,
+  "valid": 54,
+  "errors": 0,
+  "hardViolations": 0,
+  "fullyCoveredNativeObjectivesChecked": 8,
+  "sourceChecksums": {
+    "HybridScheduleOptimizer.java": "43de001c32bf705ece8d32cdf8d3b3e720b72b31253837f5f7bcc1ec3a14bb20",
+    "SchedulingProblem.java": "9ded0499372aab5f88eca0eaf13fc0c8049a2230bca31af7267aca958de7d066",
+    "pom.xml": "947cdd694d17d0cbe0fe8457dd84227ea6280ad7b7fdada26ce5bc442537447e",
+    "BenchmarkCli.java": "85ff7195eb10ac406aff3aedafd29c3ffe74f01cf5702866431a8392edf96a2f",
+    "prepare_data.py": "827c9fffe7a9b051c874ff4032fc829975e0b9a45afa39d376d3541fab64a7b5",
+    "evaluate.py": "63e3450de622c7865dca04f6da51a6d1c6080c6c8f65494777d0c3c061a1703b",
+    "run_benchmarks.py": "4eb66bc8a6596fd15a779fdaa849da7e9dfca35ab3501add6bf917066c8f2418"
+  }
+}

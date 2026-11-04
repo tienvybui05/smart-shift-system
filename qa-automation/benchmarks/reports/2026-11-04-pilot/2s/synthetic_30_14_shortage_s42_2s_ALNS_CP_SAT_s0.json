@@ -1,0 +1,11 @@
+{
+  "selectedOptions" : [ ],
+  "status" : "ERROR",
+  "error" : "BusinessRuleException: Bộ giải chưa tìm được lịch trong thời gian cho phép; không lưu phân công mới",
+  "algorithm" : "ALNS_CP_SAT",
+  "seed" : 0,
+  "timeLimitSeconds" : 2.0,
+  "solverWallMillis" : 1209.863675,
+  "javaVersion" : "17.0.21",
+  "os" : "Linux amd64"
+}

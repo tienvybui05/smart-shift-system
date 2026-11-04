@@ -1,0 +1,12 @@
+{
+  "image": "smart-shift-benchmark:scale-v3",
+  "imageId": "sha256:641066ad63db84b4615de5eb7e76fb20a1bcc5c2f4e631df807d3837d2f75763",
+  "optimizerSha256": "43de001c32bf705ece8d32cdf8d3b3e720b72b31253837f5f7bcc1ec3a14bb20",
+  "inputSha256": "af7e6961de132c84d440628f1a707599c0a07f2326d4068812b3e3e01729adb8",
+  "seed": 42,
+  "seconds": 15,
+  "maxIterations": 20,
+  "cpuLimit": 1,
+  "profile": true,
+  "excludedFromBenchmarkStatistics": true
+}

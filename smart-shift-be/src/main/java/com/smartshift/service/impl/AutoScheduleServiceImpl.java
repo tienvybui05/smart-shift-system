@@ -1,6 +1,8 @@
 package com.smartshift.service.impl;
 
 import com.smartshift.dto.assignment.AssignmentConstraintResult;
+import com.smartshift.dto.autoschedule.OptimizationSummary;
+import com.smartshift.scheduling.HybridPlanningService;
 import com.smartshift.dto.autoschedule.AutoScheduleAssignmentResponse;
 import com.smartshift.dto.autoschedule.AutoScheduleRequest;
 import com.smartshift.dto.autoschedule.AutoScheduleResponse;
@@ -11,7 +13,6 @@ import com.smartshift.entity.ShiftRequirement;
 import com.smartshift.entity.User;
 import com.smartshift.entity.WorkShift;
 import com.smartshift.enums.AssignmentStatus;
-import com.smartshift.enums.AvailabilityType;
 import com.smartshift.enums.SchedulePeriodStatus;
 import com.smartshift.enums.ScheduleAuditAction;
 import com.smartshift.enums.ScheduleAuditTargetType;
@@ -33,15 +34,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,13 +52,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
     private static final List<AssignmentStatus> ACTIVE_ASSIGNMENT_STATUSES =
         List.of(AssignmentStatus.ASSIGNED, AssignmentStatus.CONFIRMED);
 
-    private static final BigDecimal PREFERRED_SCORE = new BigDecimal("100");
-    private static final BigDecimal AVAILABLE_SCORE = new BigDecimal("60");
-    private static final BigDecimal MINIMUM_HOURS_WEIGHT = new BigDecimal("2");
-    private static final BigDecimal MAXIMUM_DEFICIT_SCORE_HOURS =
-        new BigDecimal("40");
-    private static final BigDecimal FAIRNESS_WEIGHT = new BigDecimal("20");
-
     private final SchedulePeriodRepository schedulePeriodRepository;
     private final WorkShiftRepository workShiftRepository;
     private final ShiftRequirementRepository shiftRequirementRepository;
@@ -70,6 +60,7 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
     private final ShiftAssignmentMapper shiftAssignmentMapper;
     private final AssignmentConstraintService assignmentConstraintService;
     private final ScheduleAuditService scheduleAuditService;
+    private final HybridPlanningService hybridPlanningService;
 
     @Override
     @Transactional
@@ -103,12 +94,9 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
             .findAllSchedulableByLocationForUpdate(
                 schedulePeriod.getLocation().getId()
             );
-        Map<Long, List<User>> employeesByPosition = groupByPosition(employees);
-        Map<Long, Set<Long>> assignedUserIdsByShift = new HashMap<>();
         List<String> warnings = new ArrayList<>();
         List<RequirementTask> tasks = buildTasks(
             activeShifts,
-            assignedUserIdsByShift,
             warnings
         );
         if (tasks.isEmpty()) {
@@ -122,66 +110,49 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
             );
         }
 
-        for (RequirementTask task : tasks) {
-            task.eligibleCandidates = countEligibleCandidates(
-                task,
-                employeesByPosition,
-                assignedUserIdsByShift,
-                generatedAt
-            );
-        }
-        tasks.sort(requirementTaskComparator());
-
-        int assignedBefore = tasks.stream()
-            .mapToInt(task -> task.assignedEmployees)
-            .sum();
-        List<AutoScheduleAssignmentResponse> generatedAssignments =
-            new ArrayList<>();
+        int assignedBefore = tasks.stream().mapToInt(task -> task.assignedEmployees).sum();
+        List<AutoScheduleAssignmentResponse> generatedAssignments = new ArrayList<>();
         int preferredAssignments = 0;
-
-        for (RequirementTask task : tasks) {
-            while (task.assignedEmployees < task.requirement.getMinEmployees()) {
-                CandidateSearchResult searchResult = findCandidates(
-                    task,
-                    employeesByPosition,
-                    assignedUserIdsByShift,
-                    generatedAt
-                );
-                if (searchResult.eligibleCandidates().isEmpty()) {
-                    task.failureReasons = searchResult.failureReasons();
-                    break;
-                }
-
-                CandidateEvaluation selected = searchResult
-                    .eligibleCandidates()
-                    .get(0);
-                ShiftAssignment assignment = shiftAssignmentMapper.toAutoEntity(
-                    task.workShift,
-                    selected.employee(),
-                    generatedBy,
-                    selected.score(),
-                    String.join("; ", selected.selectionReasons())
-                );
-                ShiftAssignment saved = shiftAssignmentRepository.saveAndFlush(
-                    assignment
-                );
-
-                task.assignedEmployees++;
-                assignedUserIdsByShift
-                    .computeIfAbsent(
-                        task.workShift.getId(),
-                        ignored -> new HashSet<>()
-                    )
-                    .add(selected.employee().getId());
-                generatedAssignments.add(toAssignmentResponse(
-                    saved,
-                    selected.selectionReasons()
-                ));
-                if (selected.constraintResult().availabilityType()
-                    == AvailabilityType.PREFERRED) {
-                    preferredAssignments++;
+        Map<Long, List<String>> rejectionReasons = new HashMap<>();
+        HybridPlanningService.Plan plan = hybridPlanningService.plan(
+            schedulePeriod, employees,
+            tasks.stream().map(task -> new HybridPlanningService.DemandInput(
+                task.workShift, task.requirement, task.assignedEmployees)).toList(),
+            generatedAt, rejectionReasons
+        );
+        for (HybridPlanningService.Selection selection : plan.selections()) {
+            if (!selection.shift().getStartAt().isAfter(Instant.now())) {
+                throw new BusinessRuleException("Ca đã bắt đầu trong lúc tối ưu; vui lòng sinh lịch lại");
+            }
+            // Defense in depth: validate against persisted work and earlier selected assignments.
+            AssignmentConstraintResult evaluation = assignmentConstraintService.evaluate(
+                selection.employee(), selection.shift(), selection.employee().getPosition());
+            if (!evaluation.eligible()) {
+                throw new BusinessRuleException("Kết quả tối ưu không còn hợp lệ: "
+                    + String.join("; ", evaluation.violations()));
+            }
+            ShiftAssignment saved = shiftAssignmentRepository.saveAndFlush(
+                shiftAssignmentMapper.toAutoEntity(selection.shift(), selection.employee(),
+                    generatedBy, null, String.join("; ", selection.reasons())));
+            for (RequirementTask task : tasks) {
+                if (task.workShift.getId().equals(selection.shift().getId())
+                    && task.requirement.getPosition().getId().equals(selection.employee().getPosition().getId())) {
+                    task.assignedEmployees++;
                 }
             }
+            generatedAssignments.add(toAssignmentResponse(saved, selection.reasons()));
+            if (selection.preferred()) preferredAssignments++;
+        }
+        for (RequirementTask task : tasks) {
+            if (task.assignedEmployees < task.requirement.getMinEmployees()) {
+                List<String> reasons = rejectionReasons.getOrDefault(task.requirement.getId(), List.of());
+                task.failureReasons = reasons.isEmpty()
+                    ? List.of("Chưa thể lấp đủ trong giới hạn giờ, thời gian nghỉ, ngày liên tiếp và thời gian tìm kiếm")
+                    : reasons;
+            }
+        }
+        if (!plan.result().status().equals("OPTIMAL") && !plan.result().status().equals("NO_CANDIDATES")) {
+            warnings.add("Đã tìm được lịch khả thi; chưa chứng minh tối ưu toàn cục trong thời gian cho phép.");
         }
 
         refreshWorkShiftStatuses(activeShifts, tasks);
@@ -238,7 +209,10 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
             qualityScore,
             warnings,
             generatedAssignments,
-            shortages
+            shortages,
+            new OptimizationSummary("ALNS_CP_SAT", plan.result().status(),
+                plan.result().objective(), plan.result().iterations(), plan.result().elapsedMillis(),
+                plan.result().seed(), plan.result().operatorWeights())
         );
         Map<String, Object> afterData = new LinkedHashMap<>();
         afterData.put("generatedAt", generatedAt);
@@ -247,6 +221,7 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
         afterData.put("assignedEmployeesAfter", assignedAfter);
         afterData.put("coveragePercentage", coveragePercentage);
         afterData.put("qualityScore", qualityScore);
+        afterData.put("optimization", response.optimization());
         afterData.put(
             "assignmentIds",
             generatedAssignments.stream()
@@ -269,7 +244,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
 
     private List<RequirementTask> buildTasks(
         List<WorkShift> workShifts,
-        Map<Long, Set<Long>> assignedUserIdsByShift,
         List<String> warnings
     ) {
         List<RequirementTask> tasks = new ArrayList<>();
@@ -281,13 +255,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
                     workShift.getId(),
                     ACTIVE_ASSIGNMENT_STATUSES
                 );
-            assignedUserIdsByShift.put(
-                workShift.getId(),
-                assignments.stream()
-                    .map(assignment -> assignment.getUser().getId())
-                    .collect(java.util.stream.Collectors.toSet())
-            );
-
             if (requirements.isEmpty()) {
                 warnings.add(
                     shiftLabel(workShift)
@@ -315,192 +282,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
             }
         }
         return tasks;
-    }
-
-    private Map<Long, List<User>> groupByPosition(List<User> employees) {
-        Map<Long, List<User>> result = new HashMap<>();
-        for (User employee : employees) {
-            result.computeIfAbsent(
-                employee.getPosition().getId(),
-                ignored -> new ArrayList<>()
-            ).add(employee);
-        }
-        return result;
-    }
-
-    private int countEligibleCandidates(
-        RequirementTask task,
-        Map<Long, List<User>> employeesByPosition,
-        Map<Long, Set<Long>> assignedUserIdsByShift,
-        Instant generatedAt
-    ) {
-        return findCandidates(
-            task,
-            employeesByPosition,
-            assignedUserIdsByShift,
-            generatedAt
-        ).eligibleCandidates().size();
-    }
-
-    private CandidateSearchResult findCandidates(
-        RequirementTask task,
-        Map<Long, List<User>> employeesByPosition,
-        Map<Long, Set<Long>> assignedUserIdsByShift,
-        Instant generatedAt
-    ) {
-        if (!task.workShift.getStartAt().isAfter(generatedAt)) {
-            return new CandidateSearchResult(
-                List.of(),
-                List.of("Ca đã bắt đầu hoặc đang diễn ra")
-            );
-        }
-
-        List<User> employees = employeesByPosition.getOrDefault(
-            task.requirement.getPosition().getId(),
-            List.of()
-        );
-        if (employees.isEmpty()) {
-            return new CandidateSearchResult(
-                List.of(),
-                List.of(
-                    "Không có nhân viên đang hoạt động phù hợp với vị trí"
-                )
-            );
-        }
-
-        Set<Long> assignedUserIds = assignedUserIdsByShift.getOrDefault(
-            task.workShift.getId(),
-            Set.of()
-        );
-        List<CandidateEvaluation> eligibleCandidates = new ArrayList<>();
-        Set<String> failureReasons = new LinkedHashSet<>();
-        for (User employee : employees) {
-            if (assignedUserIds.contains(employee.getId())) {
-                failureReasons.add("Nhân viên phù hợp đã được xếp vào ca này");
-                continue;
-            }
-
-            AssignmentConstraintResult constraintResult =
-                assignmentConstraintService.evaluate(
-                    employee,
-                    task.workShift,
-                    task.requirement.getPosition()
-                );
-            if (!constraintResult.eligible()) {
-                failureReasons.addAll(constraintResult.violations());
-                continue;
-            }
-
-            List<String> selectionReasons = buildSelectionReasons(
-                employee,
-                constraintResult,
-                task.workShift
-            );
-            eligibleCandidates.add(new CandidateEvaluation(
-                employee,
-                constraintResult,
-                calculateScore(employee, constraintResult, task.workShift),
-                selectionReasons
-            ));
-        }
-        eligibleCandidates.sort(candidateComparator());
-        if (failureReasons.isEmpty() && eligibleCandidates.isEmpty()) {
-            failureReasons.add("Không còn ứng viên hợp lệ cho vị trí");
-        }
-        return new CandidateSearchResult(
-            List.copyOf(eligibleCandidates),
-            List.copyOf(failureReasons).stream().limit(5).toList()
-        );
-    }
-
-    private BigDecimal calculateScore(
-        User employee,
-        AssignmentConstraintResult constraintResult,
-        WorkShift workShift
-    ) {
-        BigDecimal availabilityScore = constraintResult.availabilityType()
-            == AvailabilityType.PREFERRED
-            ? PREFERRED_SCORE
-            : AVAILABLE_SCORE;
-        BigDecimal targetHours = calculateNetHours(workShift);
-        BigDecimal currentWeeklyHours = constraintResult.projectedWeeklyHours()
-            .subtract(targetHours)
-            .max(BigDecimal.ZERO);
-        BigDecimal minimumHoursDeficit = employee.getMinHoursPerWeek()
-            .subtract(currentWeeklyHours)
-            .max(BigDecimal.ZERO)
-            .min(MAXIMUM_DEFICIT_SCORE_HOURS);
-        BigDecimal minimumHoursScore = minimumHoursDeficit.multiply(
-            MINIMUM_HOURS_WEIGHT
-        );
-
-        BigDecimal fairnessScore = BigDecimal.ZERO;
-        if (employee.getMaxHoursPerWeek().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal remainingCapacity = employee.getMaxHoursPerWeek()
-                .subtract(constraintResult.projectedWeeklyHours())
-                .max(BigDecimal.ZERO);
-            fairnessScore = remainingCapacity
-                .divide(
-                    employee.getMaxHoursPerWeek(),
-                    6,
-                    RoundingMode.HALF_UP
-                )
-                .multiply(FAIRNESS_WEIGHT);
-        }
-
-        return availabilityScore
-            .add(minimumHoursScore)
-            .add(fairnessScore)
-            .setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private List<String> buildSelectionReasons(
-        User employee,
-        AssignmentConstraintResult constraintResult,
-        WorkShift workShift
-    ) {
-        List<String> reasons = new ArrayList<>();
-        if (constraintResult.availabilityType() == AvailabilityType.PREFERRED) {
-            reasons.add("Đăng ký ưu tiên cho toàn bộ thời gian ca");
-        } else {
-            reasons.add("Đăng ký rảnh cho toàn bộ thời gian ca");
-        }
-
-        BigDecimal currentWeeklyHours = constraintResult.projectedWeeklyHours()
-            .subtract(calculateNetHours(workShift))
-            .max(BigDecimal.ZERO);
-        if (currentWeeklyHours.compareTo(employee.getMinHoursPerWeek()) < 0) {
-            reasons.add(
-                "Đang dưới định mức giờ tối thiểu trong tuần"
-            );
-        }
-        reasons.add(
-            "Tổng giờ dự kiến trong tuần: "
-                + constraintResult.projectedWeeklyHours().toPlainString()
-        );
-        return List.copyOf(reasons);
-    }
-
-    private Comparator<RequirementTask> requirementTaskComparator() {
-        return Comparator
-            .comparingInt((RequirementTask task) ->
-                task.requirement.getPriority()
-            )
-            .thenComparingInt(task -> task.eligibleCandidates)
-            .thenComparing(task -> task.workShift.getStartAt())
-            .thenComparing(task -> task.requirement.getPosition().getName());
-    }
-
-    private Comparator<CandidateEvaluation> candidateComparator() {
-        return Comparator
-            .comparing(
-                CandidateEvaluation::score,
-                Comparator.reverseOrder()
-            )
-            .thenComparing(candidate -> candidate.constraintResult()
-                .projectedWeeklyHours())
-            .thenComparing(candidate -> candidate.employee().getFullName())
-            .thenComparing(candidate -> candidate.employee().getId());
     }
 
     private void refreshWorkShiftStatuses(
@@ -607,15 +388,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
         );
     }
 
-    private BigDecimal calculateNetHours(WorkShift workShift) {
-        long netMinutes = Duration.between(
-            workShift.getStartAt(),
-            workShift.getEndAt()
-        ).toMinutes() - workShift.getBreakMinutes();
-        return BigDecimal.valueOf(netMinutes)
-            .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
-    }
-
     private BigDecimal percentage(int numerator, int denominator) {
         if (denominator <= 0) {
             return BigDecimal.ZERO.setScale(2);
@@ -669,7 +441,6 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
         private final WorkShift workShift;
         private final ShiftRequirement requirement;
         private int assignedEmployees;
-        private int eligibleCandidates;
         private List<String> failureReasons = List.of();
 
         private RequirementTask(
@@ -683,17 +454,4 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
         }
     }
 
-    private record CandidateEvaluation(
-        User employee,
-        AssignmentConstraintResult constraintResult,
-        BigDecimal score,
-        List<String> selectionReasons
-    ) {
-    }
-
-    private record CandidateSearchResult(
-        List<CandidateEvaluation> eligibleCandidates,
-        List<String> failureReasons
-    ) {
-    }
 }

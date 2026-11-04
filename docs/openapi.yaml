@@ -15,6 +15,97 @@ components:
 security:
   - bearerAuth: []
 paths:
+  /api/schedules/generate:
+    post:
+      summary: Sinh lịch tự động bằng ALNS–CP-SAT
+      description: >
+        Admin/Manager trong phạm vi chi nhánh tạo phân công AUTO cho kỳ DRAFT.
+        Giữ nguyên các phân công đã có; chỉ bổ sung tới nhu cầu tối thiểu.
+        CP-SAT khởi tạo và ALNS dùng CP-SAT để sửa từng vùng lịch.
+        qualityScore là chỉ số độ phủ/nguyện vọng; optimization.objective là điểm phạt cần giảm.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schedulePeriodId]
+              properties:
+                schedulePeriodId:
+                  type: integer
+                  format: int64
+                  minimum: 1
+      responses:
+        '201':
+          description: Lịch đã được lưu và ghi audit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedulePeriodId:
+                    type: integer
+                    format: int64
+                  assignmentsCreated:
+                    type: integer
+                  unfilledPositions:
+                    type: integer
+                  coveragePercentage:
+                    type: number
+                  preferencePercentage:
+                    type: number
+                  qualityScore:
+                    type: number
+                    description: Chỉ số mô tả độ phủ/nguyện vọng, không phải optimality gap
+                  assignments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        score:
+                          type: number
+                          nullable: true
+                          description: Null với phân công hybrid; không chấm điểm Greedy từng người
+                  shortages:
+                    type: array
+                    items:
+                      type: object
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                  optimization:
+                    type: object
+                    properties:
+                      algorithm:
+                        type: string
+                        enum: [ALNS_CP_SAT]
+                      status:
+                        type: string
+                        enum: [OPTIMAL, FEASIBLE, NO_CANDIDATES]
+                        description: OPTIMAL chỉ được báo nếu constructor chứng minh tối ưu toàn mô hình
+                      objective:
+                        type: integer
+                        format: int64
+                      iterations:
+                        type: integer
+                      elapsedMillis:
+                        type: integer
+                        format: int64
+                      seed:
+                        type: integer
+                      operatorWeights:
+                        type: array
+                        items:
+                          type: number
+        '400':
+          description: Kỳ không hợp lệ hoặc bộ giải chưa tìm được nghiệm; không lưu phân công mới
+        '401':
+          description: Chưa xác thực
+        '403':
+          description: Không có quyền quản lý kỳ lịch
+        '404':
+          description: Không tìm thấy kỳ lịch
   /api/auth/login:
     post:
       summary: Đăng nhập

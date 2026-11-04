@@ -311,6 +311,45 @@ class AssignmentConstraintServiceImplTest {
         assertTrue(hasViolation(result.violations(), "toàn bộ thời gian"));
     }
 
+    @Test
+    void preparedSnapshotMatchesSharedValidatorAndDoesNotQueryPerCandidate() {
+        List<EmployeeAvailability> availability = List.of(availability(MONDAY,
+            LocalTime.of(8, 0), LocalTime.of(16, 0), AvailabilityType.PREFERRED));
+        stubEvaluation(availability, List.of(), false);
+        var direct = constraintService.evaluate(employee, targetShift, position);
+        when(availabilityRepository.findAllByUserIdInAndAvailableDateBetween(any(), any(), any()))
+            .thenReturn(availability);
+        var prepared = constraintService.prepare(List.of(employee), List.of(targetShift), List.of());
+        for (int i = 0; i < 5; i++) {
+            var result = prepared.evaluate(employee, targetShift, position);
+            assertEquals(direct, result);
+        }
+        org.mockito.Mockito.verify(availabilityRepository, org.mockito.Mockito.times(1))
+            .findAllByUserIdInAndAvailableDateBetween(any(), any(), any());
+        org.mockito.Mockito.verify(timeOffRequestRepository, org.mockito.Mockito.times(1))
+            .existsOverlappingRequest(any(), any(), any(), any());
+        org.mockito.Mockito.verify(shiftAssignmentRepository, org.mockito.Mockito.times(1))
+            .findActiveAssignmentsInRange(any(), any(), any(), any());
+    }
+
+    @Test
+    void preparedSnapshotRejectsApprovedLeaveAndUnavailableWindows() {
+        when(availabilityRepository.findAllByUserIdInAndAvailableDateBetween(any(), any(), any()))
+            .thenReturn(List.of(availability(MONDAY, LocalTime.of(8, 0), LocalTime.of(16, 0),
+                AvailabilityType.UNAVAILABLE)));
+        var leave = new com.smartshift.entity.TimeOffRequest();
+        leave.setUser(employee);
+        leave.setStartAt(targetShift.getStartAt());
+        leave.setEndAt(targetShift.getEndAt());
+        when(timeOffRequestRepository.findAllByUserIdInAndStatusAndStartAtLessThanAndEndAtGreaterThan(
+            any(), any(), any(), any())).thenReturn(List.of(leave));
+        var prepared = constraintService.prepare(List.of(employee), List.of(targetShift), List.of());
+        var result = prepared.evaluate(employee, targetShift, position);
+        assertFalse(result.eligible());
+        assertTrue(hasViolation(result.violations(), "đơn nghỉ"));
+        assertTrue(hasViolation(result.violations(), "toàn bộ thời gian"));
+    }
+
     private void stubEvaluation(
         List<EmployeeAvailability> availabilities,
         List<ShiftAssignment> assignments,

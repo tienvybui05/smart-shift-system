@@ -473,6 +473,8 @@ public class LarkIntegrationServiceImpl implements LarkIntegrationService {
                  SHIFT_SWAP_REQUEST_REJECTED,
                  SHIFT_SWAP_REQUEST_CANCELLED -> "/shift-swaps";
             case PAYROLL_CONFIRMED -> "/payroll";
+            case DEVICE_REGISTERED -> "/attendance/manage?tab=devices";
+            case DEVICE_APPROVED, DEVICE_REVOKED -> "/attendance";
         };
     }
 

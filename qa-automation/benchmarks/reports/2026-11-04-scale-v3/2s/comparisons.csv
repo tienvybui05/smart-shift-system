@@ -1,0 +1,10 @@
+﻿dataset,timeLimitSeconds,left,right,wins,ties,losses,failedPairs
+nrp01_smartshift-projection-v1,2.0,ALNS_CP_SAT,GREEDY_SHARED_CONSTRAINTS,3,0,0,0
+nrp01_smartshift-projection-v1,2.0,CP_SAT,GREEDY_SHARED_CONSTRAINTS,3,0,0,0
+nrp01_smartshift-projection-v1,2.0,ALNS_CP_SAT,CP_SAT,0,3,0,0
+nrp03_smartshift-projection-v1,2.0,ALNS_CP_SAT,GREEDY_SHARED_CONSTRAINTS,3,0,0,0
+nrp03_smartshift-projection-v1,2.0,CP_SAT,GREEDY_SHARED_CONSTRAINTS,3,0,0,0
+nrp03_smartshift-projection-v1,2.0,ALNS_CP_SAT,CP_SAT,0,3,0,0
+synthetic_30_14_shortage_s42,2.0,ALNS_CP_SAT,GREEDY_SHARED_CONSTRAINTS,0,0,3,0
+synthetic_30_14_shortage_s42,2.0,CP_SAT,GREEDY_SHARED_CONSTRAINTS,1,0,2,0
+synthetic_30_14_shortage_s42,2.0,ALNS_CP_SAT,CP_SAT,0,1,2,0

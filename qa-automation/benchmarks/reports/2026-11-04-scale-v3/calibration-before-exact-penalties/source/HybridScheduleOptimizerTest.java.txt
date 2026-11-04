@@ -1,0 +1,392 @@
+package com.smartshift.scheduling;
+
+import org.junit.jupiter.api.Test;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import static com.smartshift.scheduling.SchedulingProblem.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class HybridScheduleOptimizerTest {
+    private static final Instant MONDAY = Instant.parse("2100-01-04T08:00:00Z");
+
+    @Test
+    void jointlyAssignsScarceEmployeeInsteadOfBlockingLaterDemand() {
+        // A can cover all three demands but only two shifts; B can cover only the first two.
+        List<Demand> demands = List.of(d(1, 0, 8, 1), d(2, 24, 8, 1), d(3, 48, 8, 1));
+        var p = problem(List.of(w(1, 1600, 1600), w(2, 800, 1600)), demands,
+            List.of(o(0, 0, true), o(0, 1, true), o(0, 2, true), o(1, 0, false), o(1, 1, false)));
+        var result = solve(p);
+        assertEquals(3, result.selectedOptions().size());
+        assertTrue(result.selectedOptions().contains(2), "Only A can fill the last demand");
+        assertFeasible(p, result);
+    }
+
+    @Test
+    void prefersPreferredAvailabilityWhenCoverageAndOtherCostsAreEqual() {
+        var p = problem(List.of(w(1, 0, 800), w(2, 0, 800)), List.of(d(1, 0, 8, 1)),
+            List.of(o(0, 0, false), o(1, 0, true)));
+        assertEquals(Set.of(1), solve(p).selectedOptions());
+    }
+
+    @Test
+    void coverageDominatesVeryExpensiveAssignment() {
+        var p = problem(List.of(w(1, 0, 800)), List.of(d(1, 0, 8, 1)),
+            List.of(new Option(0, 0, false, 0, 0, 1_000_000)));
+        assertEquals(Set.of(0), solve(p).selectedOptions());
+    }
+
+    @Test
+    void neverAssignsOverlappingShiftsEvenAcrossMidnight() {
+        var p = problem(List.of(w(1, 0, 2400)), List.of(d(1, 14, 8, 1), d(2, 18, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, true)));
+        var result = solve(p);
+        assertEquals(1, result.selectedOptions().size());
+        assertFeasible(p, result);
+    }
+
+    @Test
+    void respectsMinimumRestAcrossDays() {
+        var worker = new Worker(1, 0, 2400, 1600, 11 * 3600, 6, "cashier");
+        var p = problem(List.of(worker), List.of(d(1, 8, 8, 1), d(2, 24, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, true)));
+        assertEquals(1, solve(p).selectedOptions().size());
+    }
+
+    @Test
+    void enforcesAggregateDailyAndWeeklyHours() {
+        var worker = new Worker(1, 0, 1200, 800, 0, 6, "cashier");
+        var p = problem(List.of(worker),
+            List.of(d(1, 0, 4, 1), d(2, 4, 4, 1), d(3, 8, 4, 1), d(4, 24, 4, 1)),
+            List.of(o(0, 0, true), o(0, 1, true), o(0, 2, true), o(0, 3, true)));
+        var result = solve(p);
+        assertEquals(3, result.selectedOptions().size());
+        assertFeasible(p, result);
+    }
+
+    @Test
+    void countsPreviouslyAssignedHoursAgainstWeeklyLimit() {
+        var p = problem(List.of(w(1, 0, 1600)),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1)),
+            List.of(new Option(0, 0, true, 0, 800, 0), new Option(0, 1, true, 0, 800, 0)));
+        assertEquals(1, solve(p).selectedOptions().size());
+    }
+
+    @Test
+    void blocksNewDayWhenFixedWorkWouldExceedConsecutiveLimitAcrossWeekBoundary() {
+        var worker = new Worker(1, 0, 4800, 1600, 0, 2, "cashier");
+        var fixed = List.of(
+            new FixedAssignment(1, 90, MONDAY.minusSeconds(48 * 3600), MONDAY.minusSeconds(40 * 3600), 800, 0),
+            new FixedAssignment(1, 91, MONDAY.minusSeconds(24 * 3600), MONDAY.minusSeconds(16 * 3600), 800, 0));
+        var p = new SchedulingProblem(List.of(worker), List.of(d(1, 0, 8, 1)),
+            List.of(o(0, 0, true)), fixed, ZoneOffset.UTC, null);
+        assertTrue(solve(p).selectedOptions().isEmpty());
+    }
+
+    @Test
+    void limitsConsecutiveDaysAmongNewAssignments() {
+        var worker = new Worker(1, 0, 4800, 1600, 0, 2, "cashier");
+        var p = problem(List.of(worker),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1), d(3, 48, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, true), o(0, 2, true)));
+        assertEquals(2, solve(p).selectedOptions().size());
+    }
+
+    @Test
+    void usesCostAndBudgetWithoutSacrificingCoverage() {
+        var p = new SchedulingProblem(List.of(w(1, 0, 800), w(2, 0, 800)),
+            List.of(d(1, 0, 8, 1)),
+            List.of(new Option(0, 0, true, 0, 0, 500), new Option(1, 0, true, 0, 0, 100)),
+            List.of(), ZoneOffset.UTC, 150L);
+        assertEquals(Set.of(1), solve(p).selectedOptions());
+    }
+
+    @Test
+    void allocatesLimitedCapacityToHigherPriorityWhenTotalCoverageTies() {
+        var p = problem(List.of(w(1, 0, 800)),
+            List.of(new Demand(1, MONDAY, MONDAY.plusSeconds(8*3600), 800, 1, 1),
+                new Demand(2, MONDAY.plusSeconds(24*3600), MONDAY.plusSeconds(32*3600), 800, 1, 3)),
+            List.of(o(0, 0, false), o(0, 1, true)));
+        assertEquals(Set.of(0), solve(p).selectedOptions());
+    }
+
+    @Test
+    void handlesEmptyCandidateSetAndDoesNotInventAssignments() {
+        var p = problem(List.of(w(1, 0, 800)), List.of(d(1, 0, 8, 1)), List.of());
+        var result = solve(p);
+        assertEquals("NO_CANDIDATES", result.status());
+        assertTrue(result.selectedOptions().isEmpty());
+    }
+
+    @Test
+    void balancesWorkloadForEquivalentEmployees() {
+        var p = problem(List.of(w(1, 800, 1600), w(2, 800, 1600)),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, true), o(1, 0, true), o(1, 1, true)));
+        var result = solve(p);
+        assertEquals(2, result.selectedOptions().size());
+        assertEquals(2, result.selectedOptions().stream().map(i -> p.options().get(i).worker()).distinct().count());
+    }
+
+    @Test
+    void stopsBeforeAlnsWhenFullModelProvesOptimal() {
+        var p = problem(List.of(w(1, 800, 1600), w(2, 800, 1600)),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, false), o(1, 0, false), o(1, 1, true)));
+        var construction = new HybridScheduleOptimizer(1, 0, 42).solve(p);
+        var hybrid = new HybridScheduleOptimizer(2, 4, 42).solve(p);
+        assertTrue(hybrid.objective() <= construction.objective());
+        assertEquals("OPTIMAL", construction.status());
+        assertEquals("OPTIMAL", hybrid.status());
+        assertEquals(0, hybrid.iterations());
+        assertEquals(List.of(1.0, 1.0, 1.0), hybrid.operatorWeights());
+        assertEquals(42, hybrid.seed());
+        assertFeasible(p, hybrid);
+    }
+
+    @Test
+    void constructionContinuesPastSliceUntilItHasAnIncumbent() {
+        AtomicLong clock = new AtomicLong(0);
+        AtomicInteger stops = new AtomicInteger();
+        var budget = new HybridScheduleOptimizer.ConstructionBudget(4500, clock::get, stops::incrementAndGet);
+        clock.set(4500);
+        budget.onSliceExpired();
+        assertEquals(0, stops.get(), "No incumbent: retain the remaining search budget");
+        clock.set(7000);
+        budget.onSolution();
+        assertEquals(1, stops.get(), "First late solution releases remaining time for ALNS");
+        budget.onSliceExpired();
+        budget.onSolution();
+        assertEquals(1, stops.get(), "Timer and callback request stop at most once");
+    }
+
+    @Test
+    void constructionWithEarlyIncumbentStopsAtSliceEvenWithoutFurtherImprovements() {
+        AtomicLong clock = new AtomicLong(1000);
+        AtomicInteger stops = new AtomicInteger();
+        var budget = new HybridScheduleOptimizer.ConstructionBudget(4500, clock::get, stops::incrementAndGet);
+        budget.onSolution();
+        assertEquals(0, stops.get());
+        clock.set(4500);
+        budget.onSliceExpired();
+        assertEquals(1, stops.get());
+    }
+
+    @Test
+    void repairsRetainBestIncumbentAndCannotCertifyGlobalOptimality() {
+        var p = problem(List.of(w(1, 800, 1600), w(2, 800, 1600)),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, false), o(1, 0, false), o(1, 1, true)));
+        // Script solver outcomes to test the controller deterministically. Native model
+        // correctness and actual OPTIMAL early termination are checked by the tests above.
+        var replies = new ArrayDeque<>(List.of(
+            new HybridScheduleOptimizer.Solution(Set.of(0, 3), 100, "FEASIBLE"),
+            new HybridScheduleOptimizer.Solution(Set.of(1, 2), 110, "OPTIMAL"),
+            new HybridScheduleOptimizer.Solution(Set.of(0, 3), 90, "OPTIMAL"),
+            new HybridScheduleOptimizer.Solution(Set.of(1, 2), 95, "OPTIMAL")));
+        List<Boolean> constructionCalls = new ArrayList<>();
+        var optimizer = new HybridScheduleOptimizer(5, 3, 42) {
+            @Override
+            Solution run(Model model, double time, int randomSeed, boolean reserveForRepair) {
+                assertTrue(time > 0);
+                constructionCalls.add(reserveForRepair);
+                return replies.removeFirst();
+            }
+        };
+        var result = optimizer.solve(p);
+        assertEquals(90, result.objective());
+        assertEquals(Set.of(0, 3), result.selectedOptions());
+        assertEquals("FEASIBLE", result.status(), "Neighborhood OPTIMAL is not global OPTIMAL");
+        assertEquals(3, result.iterations());
+        assertEquals(List.of(true, false, false, false), constructionCalls);
+        assertTrue(result.operatorWeights().stream().allMatch(v -> v > 0));
+        assertFeasible(p, result);
+    }
+
+    @Test
+    void failsWithoutInventingScheduleWhenEntireConstructionBudgetFindsNothing() {
+        var p = problem(List.of(w(1, 0, 800)), List.of(d(1, 0, 8, 1)), List.of(o(0, 0, true)));
+        var optimizer = new HybridScheduleOptimizer(1, 4, 42) {
+            @Override
+            Solution run(Model model, double time, int randomSeed, boolean reserveForRepair) {
+                assertTrue(reserveForRepair);
+                return null;
+            }
+        };
+        assertThrows(com.smartshift.exception.BusinessRuleException.class, () -> optimizer.solve(p));
+    }
+
+    @Test
+    void intervalCliquesMatchEveryPairwiseFeasibleSubset() {
+        Random random = new Random(17);
+        for (int trial = 0; trial < 20; trial++) {
+            Worker worker = new Worker(1, 0, 10000, 2400, trial % 2 == 0 ? 0 : 39600, 7, "group");
+            List<Demand> demands = new ArrayList<>();
+            List<Option> options = new ArrayList<>();
+            for (int i = 0; i < 8; i++) {
+                Instant start = MONDAY.plusSeconds(random.nextInt(72)*3600L);
+                demands.add(new Demand(i+1, start, start.plusSeconds((1+random.nextInt(8))*3600L), 100, 1, 1));
+                options.add(o(0, i, true));
+            }
+            var p = problem(List.of(worker), demands, options);
+            var cliques = HybridScheduleOptimizer.conflictCliques(p, worker,
+                java.util.stream.IntStream.range(0, 8).boxed().toList());
+            for (int mask = 0; mask < 256; mask++) {
+                Set<Integer> selected = new HashSet<>();
+                for (int i = 0; i < 8; i++) if ((mask & (1 << i)) != 0) selected.add(i);
+                boolean pairwise = true;
+                for (int a : selected) for (int b : selected) if (a < b) {
+                    Demand first = demands.get(a), second = demands.get(b);
+                    boolean separated = !first.end().plusSeconds(worker.restSeconds()).isAfter(second.start())
+                        || !second.end().plusSeconds(worker.restSeconds()).isAfter(first.start());
+                    pairwise &= separated;
+                }
+                boolean byCliques = cliques.stream().allMatch(c -> c.stream().filter(selected::contains).count() <= 1);
+                assertEquals(pairwise, byCliques, "clique/pair mismatch: trial=" + trial + " mask=" + mask);
+            }
+        }
+    }
+
+    @Test
+    void intervalCliquesAllowExactRestAndRejectOneNanosecondShort() {
+        Worker worker = new Worker(1, 0, 4000, 1600, 39600, 6, "group");
+        Demand first = d(1, 0, 8, 1);
+        Instant boundary = first.end().plusSeconds(worker.restSeconds());
+        var p = problem(List.of(worker), List.of(first,
+            new Demand(2, boundary, boundary.plusSeconds(3600), 100, 1, 1),
+            new Demand(3, boundary.minusNanos(1), boundary.plusSeconds(3600), 100, 1, 1)),
+            List.of(o(0, 0, true), o(0, 1, true), o(0, 2, true)));
+        var cliques = HybridScheduleOptimizer.conflictCliques(p, worker, List.of(0, 1, 2));
+        assertFalse(cliques.stream().anyMatch(c -> c.contains(0) && c.contains(1)));
+        assertTrue(cliques.stream().anyMatch(c -> c.contains(0) && c.contains(2)));
+    }
+
+    @Test
+    void restrictedModelKeepsFullObjectiveIncludingCostsGroupsAndFixedHistory() {
+        var fixed = List.of(new FixedAssignment(1, 90, MONDAY.minusSeconds(86400),
+            MONDAY.minusSeconds(57600), 800, 50));
+        var p = new SchedulingProblem(List.of(w(1, 800, 1600), new Worker(2, 0, 1600, 1600, 0, 6, "other")),
+            List.of(d(1, 0, 8, 1), d(2, 24, 8, 1), d(3, 168, 8, 1)),
+            List.of(new Option(0, 0, true, 0, 0, 200), new Option(1, 0, false, 0, 0, 100),
+                new Option(0, 1, true, 0, 0, 200), new Option(1, 1, true, 0, 0, 100),
+                new Option(0, 2, true, 0, 0, 200), new Option(1, 2, true, 0, 0, 100)),
+            fixed, ZoneOffset.UTC, 150L);
+        var optimizer = new HybridScheduleOptimizer(2, 0, 42);
+        var full = optimizer.solve(p);
+        for (Set<Integer> chosen : List.of(full.selectedOptions(), Set.<Integer>of(), Set.of(0))) {
+            var reference = optimizer.build(p, null, Set.of());
+            for (int i = 0; i < p.options().size(); i++) reference.cp().addEquality(reference.variables()[i], chosen.contains(i) ? 1 : 0);
+            var expected = optimizer.run(reference, 1, 42, false);
+            var restricted = optimizer.build(p, Set.of(), chosen);
+            var locked = optimizer.run(restricted, 1, 42, false);
+            assertNotNull(expected);
+            assertNotNull(locked);
+            assertEquals(chosen, locked.selected());
+            assertEquals(expected.objective(), locked.objective(), "Restriction must preserve the full objective at any incumbent");
+            assertEquals(0, restricted.freeOptions());
+        }
+        Set<Integer> free = Set.of(0, 1);
+        var repaired = optimizer.run(optimizer.build(p, free, full.selectedOptions()), 1, 43, false);
+        assertNotNull(repaired);
+        for (int i = 2; i < p.options().size(); i++) {
+            assertEquals(full.selectedOptions().contains(i), repaired.selected().contains(i));
+        }
+    }
+
+    @Test
+    void restrictedModelStillRejectsInvalidConsecutiveDaysWhenAllChoicesAreLocked() {
+        var worker = new Worker(1, 0, 4800, 1600, 0, 2, "cashier");
+        var p = problem(List.of(worker), List.of(d(1, 0, 8, 1), d(2, 24, 8, 1), d(3, 48, 8, 1)),
+            List.of(o(0, 0, true), o(0, 1, true), o(0, 2, true)));
+        var optimizer = new HybridScheduleOptimizer(1, 0, 42);
+        assertEquals(2, optimizer.solve(p).selectedOptions().size());
+        var invalid = optimizer.build(p, Set.of(), Set.of(0, 1, 2));
+        assertNull(optimizer.run(invalid, 1, 42, false));
+    }
+
+    @Test
+    void largeDenseNeighborhoodsStayBoundedAndShortageOperatorsOpenAnUncoveredDemand() {
+        List<Worker> workers = java.util.stream.IntStream.range(0, 100).mapToObj(i -> w(i+1, 0, 4000)).toList();
+        List<Demand> demands = new ArrayList<>();
+        List<Option> options = new ArrayList<>();
+        for (int day = 0; day < 28; day++) {
+            demands.add(d(day+1, day*24L, 8, 1));
+            for (int w = 0; w < 100; w++) options.add(o(w, day, true));
+        }
+        var p = problem(workers, demands, options);
+        var optimizer = new HybridScheduleOptimizer(1, 2, 42);
+        Set<Integer> selected = Set.of(0);
+        for (int operator = 0; operator < 3; operator++) {
+            Set<Integer> region = optimizer.neighborhood(p, selected, operator, new Random(42));
+            assertFalse(region.isEmpty());
+            assertTrue(region.size() <= 560, "20% cap must hold for every operator");
+            assertTrue(region.size() < p.options().size());
+            if (operator == 1) assertTrue(region.stream().anyMatch(i -> p.options().get(i).demand() != 0));
+            assertEquals(region, optimizer.neighborhood(p, selected, operator, new Random(42)));
+        }
+    }
+
+    @Test
+    void objectiveBoundCountsOnlyCandidatesThatCanBeAssignedToEachDemand() {
+        List<Worker> workers = new ArrayList<>();
+        List<Option> options = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            workers.add(w(i+1, 0, 800));
+            options.add(new Option(i, 0, false, 0, 0, 1_000_000));
+        }
+        var p = new SchedulingProblem(workers, List.of(d(1, 0, 8, 1)), options, List.of(), ZoneOffset.UTC, 0L);
+        var optimizer = new HybridScheduleOptimizer(2, 0, 42);
+        assertEquals(1, optimizer.solve(p).selectedOptions().size(), "Coverage still dominates all soft penalties");
+        assertTrue(optimizer.build(p, null, Set.of()).coverageWeight() < 50_000_000,
+            "One slot must not contribute the costs of one hundred mutually exclusive candidates to its bound");
+    }
+
+    private HybridScheduleOptimizer.Result solve(SchedulingProblem p) {
+        return new HybridScheduleOptimizer(1, 2, 42).solve(p);
+    }
+    private SchedulingProblem problem(List<Worker> workers, List<Demand> demands, List<Option> options) {
+        return new SchedulingProblem(workers, demands, options, List.of(), ZoneOffset.UTC, null);
+    }
+    private Worker w(long id, long minimum, long maximum) {
+        return new Worker(id, minimum, maximum, 1600, 0, 6, "cashier");
+    }
+    private Demand d(long id, long offsetHours, long durationHours, int missing) {
+        Instant start = MONDAY.plusSeconds(offsetHours * 3600);
+        return new Demand(id, start, start.plusSeconds(durationHours * 3600), durationHours * 100, missing, 1);
+    }
+    private Option o(int worker, int demand, boolean preferred) {
+        return new Option(worker, demand, preferred, 0, 0, 0);
+    }
+
+    /** Independent checker: examines the final selected assignments rather than CP model internals. */
+    private void assertFeasible(SchedulingProblem p, HybridScheduleOptimizer.Result result) {
+        Map<Integer, Integer> counts = new HashMap<>();
+        for (int i : result.selectedOptions()) counts.merge(p.options().get(i).demand(), 1, Integer::sum);
+        counts.forEach((d, count) -> assertTrue(count <= p.demands().get(d).missing()));
+        for (int w = 0; w < p.workers().size(); w++) {
+            Worker worker = p.workers().get(w);
+            List<Demand> selected = new ArrayList<>();
+            for (int i : result.selectedOptions()) {
+                if (p.options().get(i).worker() == w) selected.add(p.demands().get(p.options().get(i).demand()));
+            }
+            Map<LocalDate, Long> daily = new HashMap<>();
+            Map<LocalDate, Long> weekly = new HashMap<>();
+            for (Demand demand : selected) {
+                daily.merge(p.date(demand), demand.hours(), Long::sum);
+                weekly.merge(HybridScheduleOptimizer.week(p.date(demand)), demand.hours(), Long::sum);
+            }
+            daily.values().forEach(value -> assertTrue(value <= worker.dailyHours()));
+            weekly.values().forEach(value -> assertTrue(value <= worker.maximumHours()));
+            for (int a = 0; a < selected.size(); a++) for (int b = a + 1; b < selected.size(); b++) {
+                Demand first = selected.get(a), second = selected.get(b);
+                boolean overlap = first.start().isBefore(second.end()) && second.start().isBefore(first.end());
+                assertFalse(overlap);
+                long gap = first.end().isAfter(second.start())
+                    ? Duration.between(second.end(), first.start()).getSeconds()
+                    : Duration.between(first.end(), second.start()).getSeconds();
+                assertTrue(gap >= worker.restSeconds());
+            }
+        }
+    }
+}

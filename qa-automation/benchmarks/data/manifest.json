@@ -1,0 +1,138 @@
+{
+  "preparedAt": "2026-11-04T07:03:36.859833+00:00",
+  "files": [
+    {
+      "name": "nrp01_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance1.txt",
+      "rawSha256": "f982418dfd05e44e3738656d2da18e751bf9b7741d36d299dd394d79c275af64",
+      "employees": 8,
+      "demands": 14,
+      "options": 104,
+      "normalizedFile": "data/normalized/nrp01_smartshift-projection-v1.json"
+    },
+    {
+      "name": "nrp02_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance2.txt",
+      "rawSha256": "66f4ceb916ade9edd93eade3e858fb9e7c5586aa47be4696309a680c9f159a29",
+      "employees": 14,
+      "demands": 28,
+      "options": 312,
+      "normalizedFile": "data/normalized/nrp02_smartshift-projection-v1.json"
+    },
+    {
+      "name": "nrp03_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance3.txt",
+      "rawSha256": "dba847106a84a6f9dfeb282278c3668fb681c52cb353b0ebfde5195eb9e98286",
+      "employees": 20,
+      "demands": 42,
+      "options": 598,
+      "normalizedFile": "data/normalized/nrp03_smartshift-projection-v1.json"
+    },
+    {
+      "name": "nrp08_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance8.txt",
+      "rawSha256": "99360417e9036c8a3d2dc82cb2ca20ad97201d89392702a6d12deb313b7344e8",
+      "employees": 30,
+      "demands": 112,
+      "options": 2158,
+      "normalizedFile": "data/normalized/nrp08_smartshift-projection-v1.json"
+    },
+    {
+      "name": "nrp11_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance11.txt",
+      "rawSha256": "fe8840a088a921c354f81c051b2fd5f5f4d0b56ce5b8517ab776c3184068cb0d",
+      "employees": 50,
+      "demands": 168,
+      "options": 5304,
+      "normalizedFile": "data/normalized/nrp11_smartshift-projection-v1.json"
+    },
+    {
+      "name": "nrp13_smartshift-projection-v1",
+      "sourceUrl": "https://www.schedulingbenchmarks.org/nrp/data/Instance13.txt",
+      "rawSha256": "d5784888aefd7f39a113caa1f77ef5afb2b45008007c1bc96ff8aa752c0046bd",
+      "employees": 120,
+      "demands": 504,
+      "options": 39936,
+      "normalizedFile": "data/normalized/nrp13_smartshift-projection-v1.json"
+    },
+    {
+      "name": "synthetic_30_14_balanced_s42",
+      "sourceUrl": null,
+      "employees": 30,
+      "demands": 126,
+      "options": 1115,
+      "normalizedFile": "data/normalized/synthetic_30_14_balanced_s42.json"
+    },
+    {
+      "name": "synthetic_30_14_shortage_s42",
+      "sourceUrl": null,
+      "employees": 30,
+      "demands": 126,
+      "options": 1115,
+      "normalizedFile": "data/normalized/synthetic_30_14_shortage_s42.json"
+    },
+    {
+      "name": "synthetic_30_14_tight_s42",
+      "sourceUrl": null,
+      "employees": 30,
+      "demands": 126,
+      "options": 820,
+      "normalizedFile": "data/normalized/synthetic_30_14_tight_s42.json"
+    },
+    {
+      "name": "synthetic_100_14_balanced_s42",
+      "sourceUrl": null,
+      "employees": 100,
+      "demands": 126,
+      "options": 3687,
+      "normalizedFile": "data/normalized/synthetic_100_14_balanced_s42.json"
+    },
+    {
+      "name": "synthetic_100_14_shortage_s42",
+      "sourceUrl": null,
+      "employees": 100,
+      "demands": 126,
+      "options": 3687,
+      "normalizedFile": "data/normalized/synthetic_100_14_shortage_s42.json"
+    },
+    {
+      "name": "synthetic_100_14_tight_s42",
+      "sourceUrl": null,
+      "employees": 100,
+      "demands": 126,
+      "options": 2734,
+      "normalizedFile": "data/normalized/synthetic_100_14_tight_s42.json"
+    },
+    {
+      "name": "synthetic_300_28_balanced_s42",
+      "sourceUrl": null,
+      "employees": 300,
+      "demands": 252,
+      "options": 22153,
+      "normalizedFile": "data/normalized/synthetic_300_28_balanced_s42.json"
+    },
+    {
+      "name": "synthetic_300_28_shortage_s42",
+      "sourceUrl": null,
+      "employees": 300,
+      "demands": 252,
+      "options": 22153,
+      "normalizedFile": "data/normalized/synthetic_300_28_shortage_s42.json"
+    },
+    {
+      "name": "synthetic_300_28_tight_s42",
+      "sourceUrl": null,
+      "employees": 300,
+      "demands": 252,
+      "options": 16470,
+      "normalizedFile": "data/normalized/synthetic_300_28_tight_s42.json"
+    }
+  ],
+  "sourceIndex": "https://www.schedulingbenchmarks.org/nrp/index.html",
+  "formatGuide": "https://www.schedulingbenchmarks.org/nrp/instances1_24.html",
+  "greedyReference": {
+    "revision": "0d9bf086e1b66dcc5b353ac8cdc1f9b6781f8234",
+    "repositoryPath": "smart-shift-be/src/main/java/com/smartshift/service/impl/AutoScheduleServiceImpl.java",
+    "sha256": "b9b26f42ef258180a0bb37330046614fad1d0f0550b9fdc8daa598bd45435593"
+  }
+}

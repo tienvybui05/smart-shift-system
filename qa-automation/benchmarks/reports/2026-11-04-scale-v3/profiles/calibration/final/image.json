@@ -1,0 +1,6 @@
+{
+  "image": "smart-shift-benchmark:scale-v3-calibration",
+  "imageId": "sha256:5252e2ee89816925cea262a1a4d48654125e8beb46861aef18f5982e449bd0c9",
+  "phase": "final",
+  "calibrationOnly": true
+}

@@ -1,0 +1,32 @@
+{
+  "rounds": 10,
+  "improving": 9,
+  "regions": [
+    228,
+    800,
+    224,
+    227,
+    215,
+    232,
+    225,
+    800,
+    225,
+    128
+  ],
+  "buildMillis": [
+    399.275,
+    289.914,
+    293.943,
+    131.145,
+    204.296,
+    135.295,
+    122.228,
+    163.519,
+    119.331,
+    204.535
+  ],
+  "initialBuildMillis": 2123.12,
+  "profiledObjective": 3562271,
+  "matchesIndependentAudit": true,
+  "excludedFromBenchmarkStatistics": true
+}

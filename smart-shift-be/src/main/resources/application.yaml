@@ -16,6 +16,11 @@ server:
   port: 8080
 
 app:
+  scheduling:
+    hybrid:
+      time-limit-seconds: ${SCHEDULING_TIME_LIMIT_SECONDS:8}
+      max-iterations: ${SCHEDULING_MAX_ITERATIONS:20}
+      seed: ${SCHEDULING_RANDOM_SEED:42}
   integrations:
     lark:
       enabled: ${LARK_ENABLED:false}

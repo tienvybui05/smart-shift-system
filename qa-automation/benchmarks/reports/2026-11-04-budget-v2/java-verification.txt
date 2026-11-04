@@ -1,0 +1,4 @@
+﻿#14 16.61 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.393 s -- in 
+#14 17.63 [INFO] Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.048 s -- in 
+#14 17.65 [INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+#14 18.54 [INFO] BUILD SUCCESS

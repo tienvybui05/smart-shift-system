@@ -116,11 +116,11 @@ export default function AutoScheduleModal({
       width: 140,
     },
     {
-      title: 'Điểm',
+      title: 'Nguồn',
       dataIndex: 'score',
       width: 80,
       align: 'center',
-      render: (score) => <Tag color="purple">{formatNumber(score)}</Tag>,
+      render: () => <Tag color="purple">ALNS–CP-SAT</Tag>,
     },
     {
       title: 'Lý do lựa chọn',
@@ -247,11 +247,12 @@ export default function AutoScheduleModal({
           </div>
 
           <div className="auto-schedule-rule-note">
-            <strong>Hệ thống sẽ kiểm tra</strong>
+            <strong>Tối ưu lịch bằng ALNS–CP-SAT</strong>
             <ul>
               <li>Lịch rảnh, thời gian nghỉ phép và ca bị trùng.</li>
               <li>Chi nhánh, vị trí, thời gian nghỉ giữa ca và giới hạn giờ làm.</li>
-              <li>Ưu tiên nguyện vọng PREFERRED và cân bằng tổng giờ trong tuần.</li>
+              <li>Ưu tiên lấp đủ nhu cầu trước khi tối ưu giờ làm, nguyện vọng và chi phí.</li>
+              <li>Kiểm tra số ngày làm liên tiếp; giữ nguyên các phân công đã có.</li>
             </ul>
           </div>
 
@@ -270,6 +271,14 @@ export default function AutoScheduleModal({
             type={resultHasWarnings ? 'warning' : 'success'}
           />
 
+          {result.optimization && (
+            <Alert
+              type="info"
+              showIcon
+              message="ALNS–CP-SAT"
+              description={`Thời gian bộ giải: ${formatNumber(result.optimization.elapsedMillis / 1000)} giây · ${result.optimization.iterations} vòng ALNS · ${result.optimization.status === 'OPTIMAL' ? 'Đã chứng minh tối ưu theo mô hình và các phân công cố định' : 'Chưa có chứng nhận tối ưu toàn cục'}. Chỉ số phần trăm bên dưới mô tả độ phủ/nguyện vọng, không phải hàm mục tiêu của bộ giải.`}
+            />
+          )}
           <div className="auto-schedule-summary-grid">
             <div>
               <span>Phân công mới</span>
@@ -300,7 +309,7 @@ export default function AutoScheduleModal({
               <strong>{formatPercentage(result.coveragePercentage)}</strong>
             </div>
             <div className="auto-schedule-score-card">
-              <span>Điểm chất lượng</span>
+              <span>Chỉ số độ phủ/nguyện vọng</span>
               <Progress
                 percent={Number(result.qualityScore)}
                 showInfo={false}

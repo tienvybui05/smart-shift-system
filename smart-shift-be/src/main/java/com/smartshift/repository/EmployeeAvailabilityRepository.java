@@ -12,6 +12,10 @@ import java.util.List;
 
 public interface EmployeeAvailabilityRepository extends JpaRepository<EmployeeAvailability, Long> {
 
+    @EntityGraph(attributePaths = {"user"})
+    List<EmployeeAvailability> findAllByUserIdInAndAvailableDateBetween(
+        java.util.Collection<Long> userIds, LocalDate startDate, LocalDate endDate);
+
     @EntityGraph(attributePaths = {"user", "user.location", "user.position"})
     List<EmployeeAvailability> findAllByUserIdAndAvailableDateBetweenOrderByAvailableDateAscStartTimeAsc(
         Long userId,

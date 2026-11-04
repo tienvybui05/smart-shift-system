@@ -17,6 +17,24 @@ import java.util.Optional;
 
 public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment, Long> {
 
+    @EntityGraph(attributePaths = {"user", "user.position", "workShift", "workShift.schedulePeriod", "workShift.schedulePeriod.location"})
+    @Query("""
+        SELECT assignment FROM ShiftAssignment assignment
+        WHERE (assignment.workShift.schedulePeriod.location.id = :locationId
+            OR assignment.user.id IN :userIds)
+          AND assignment.status IN :statuses
+          AND assignment.workShift.startAt < :rangeEnd
+          AND assignment.workShift.endAt > :rangeStart
+        ORDER BY assignment.workShift.startAt, assignment.id
+        """)
+    List<ShiftAssignment> findActiveForLocationInRange(
+        @Param("locationId") Long locationId,
+        @Param("userIds") Collection<Long> userIds,
+        @Param("statuses") Collection<AssignmentStatus> statuses,
+        @Param("rangeStart") Instant rangeStart,
+        @Param("rangeEnd") Instant rangeEnd
+    );
+
     @Query("""
         SELECT assignment
         FROM ShiftAssignment assignment

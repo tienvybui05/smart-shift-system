@@ -94,7 +94,10 @@ class AutoScheduleServiceImplTest {
             userRepository,
             new ShiftAssignmentMapper(),
             assignmentConstraintService,
-            scheduleAuditService
+            scheduleAuditService,
+            new com.smartshift.scheduling.HybridPlanningService(
+                assignmentConstraintService, shiftAssignmentRepository,
+                new com.smartshift.scheduling.HybridScheduleOptimizer(0.5, 2, 42))
         );
         location = location(1L);
         position = position(2L);
@@ -162,7 +165,7 @@ class AutoScheduleServiceImplTest {
         assertEquals(AssignmentSource.AUTO, saved.getAssignmentSource());
         assertEquals(AssignmentStatus.ASSIGNED, saved.getStatus());
         assertEquals(admin, saved.getAssignedBy());
-        assertTrue(saved.getScore().compareTo(BigDecimal.ZERO) > 0);
+        org.junit.jupiter.api.Assertions.assertNull(saved.getScore());
         assertEquals(1, result.assignedEmployeesBefore());
         assertEquals(1, result.assignmentsCreated());
         assertEquals(2, result.assignedEmployeesAfter());
@@ -274,10 +277,23 @@ class AutoScheduleServiceImplTest {
         verify(shiftAssignmentRepository, never()).saveAndFlush(any());
     }
 
+    @Test
+    void refusesToPersistWhenFinalConstraintValidationFails() {
+        User candidate = user(20L, "Nhân viên", position, "ROLE_EMPLOYEE");
+        stubBase(List.of(candidate), List.of());
+        when(assignmentConstraintService.evaluate(candidate, workShift, position))
+            .thenReturn(eligible(AvailabilityType.PREFERRED, "8.00"))
+            .thenReturn(ineligible("Dữ liệu không còn hợp lệ"));
+        assertThrows(BusinessRuleException.class, () -> autoScheduleService.generate(
+            new AutoScheduleRequest(PERIOD_ID), ADMIN_USERNAME));
+        verify(shiftAssignmentRepository, never()).saveAndFlush(any());
+    }
+
     private void stubBase(
         List<User> employees,
         List<ShiftAssignment> existingAssignments
     ) {
+        when(assignmentConstraintService.prepare(any(), any(), any())).thenCallRealMethod();
         when(schedulePeriodRepository.findByIdForUpdate(PERIOD_ID))
             .thenReturn(Optional.of(schedulePeriod));
         when(userRepository.findByUsername(ADMIN_USERNAME))
@@ -287,6 +303,10 @@ class AutoScheduleServiceImplTest {
         when(userRepository.findAllSchedulableByLocationForUpdate(
             location.getId()
         )).thenReturn(employees);
+        when(shiftAssignmentRepository.findActiveForLocationInRange(any(), any(), any(), any(), any()))
+            .thenReturn(existingAssignments);
+        when(shiftAssignmentRepository.findAllByWorkShiftIdsAndStatusIn(any(), any()))
+            .thenReturn(existingAssignments);
         when(shiftRequirementRepository.findAllByWorkShiftId(workShift.getId()))
             .thenReturn(List.of(requirement));
         when(shiftAssignmentRepository

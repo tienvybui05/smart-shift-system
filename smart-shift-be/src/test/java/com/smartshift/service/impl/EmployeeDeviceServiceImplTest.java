@@ -228,7 +228,7 @@ class EmployeeDeviceServiceImplTest {
         when(deviceRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(device));
         when(deviceRepository.save(any(EmployeeDevice.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        DeviceReviewRequest reviewRequest = new DeviceReviewRequest(true);
+        DeviceReviewRequest reviewRequest = new DeviceReviewRequest(true, null);
         EmployeeDeviceResponse res = deviceService.reviewDevice("manager01", 100L, reviewRequest);
 
         assertEquals(DeviceStatus.APPROVED, res.status());
@@ -264,7 +264,7 @@ class EmployeeDeviceServiceImplTest {
         when(userRepository.findByUsername("manager_other")).thenReturn(Optional.of(manager));
         when(deviceRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(device));
 
-        DeviceReviewRequest reviewRequest = new DeviceReviewRequest(true);
+        DeviceReviewRequest reviewRequest = new DeviceReviewRequest(true, null);
         assertThrows(
             AccessDeniedException.class,
             () -> deviceService.reviewDevice("manager_other", 100L, reviewRequest)

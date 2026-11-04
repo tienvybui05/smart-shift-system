@@ -16,6 +16,10 @@ import java.util.Optional;
 
 public interface TimeOffRequestRepository extends JpaRepository<TimeOffRequest, Long> {
 
+    @EntityGraph(attributePaths = {"user"})
+    List<TimeOffRequest> findAllByUserIdInAndStatusAndStartAtLessThanAndEndAtGreaterThan(
+        Collection<Long> userIds, TimeOffStatus status, Instant rangeEnd, Instant rangeStart);
+
     long countByUserUsernameAndStatus(
         String username,
         TimeOffStatus status
