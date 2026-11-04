@@ -11,6 +11,8 @@ import { CalendarOutlined, SendOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import { getSchedulePublicationCheck } from '../../services/schedulePeriodService.js'
+import { getScheduleBudget } from '../../services/schedulingBudgetService.js'
+import { ScheduleBudgetSummary } from './ScheduleBudgetPanel.jsx'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -40,9 +42,9 @@ export default function SchedulePublicationModal({
   useEffect(() => {
     if (!open || !schedulePeriod) return undefined
     let mounted = true
-    getSchedulePublicationCheck(schedulePeriod.id)
-      .then((result) => {
-        if (mounted) setPublicationCheck(result)
+    Promise.all([getSchedulePublicationCheck(schedulePeriod.id), getScheduleBudget(schedulePeriod.id)])
+      .then(([result, budget]) => {
+        if (mounted) setPublicationCheck({ ...result, budget })
       })
       .catch((error) => {
         if (mounted) {
@@ -160,7 +162,7 @@ export default function SchedulePublicationModal({
           ),
           <Button
             key="publish"
-            disabled={!publicationCheck?.canPublish}
+            disabled={loading || !publicationCheck?.canPublish}
             icon={<SendOutlined />}
             loading={submitting}
             type="primary"
@@ -193,6 +195,7 @@ export default function SchedulePublicationModal({
               <div><span>Phân công lỗi</span><strong>{publicationCheck.invalidAssignments}</strong></div>
             </div>
 
+            <ScheduleBudgetSummary data={publicationCheck.budget} />
             {publicationCheck.blockers.map((blocker) => (
               <Alert key={blocker} message={blocker} showIcon type="error" />
             ))}

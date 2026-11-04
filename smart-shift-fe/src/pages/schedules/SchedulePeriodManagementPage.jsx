@@ -16,6 +16,9 @@ import AutoScheduleModal from '../../components/schedules/AutoScheduleModal.jsx'
 import SchedulePublicationModal from '../../components/schedules/SchedulePublicationModal.jsx'
 import useAuth from '../../hooks/useAuth.js'
 import { getLocations } from '../../services/referenceService.js'
+import WeeklyBudgetSettings from '../../components/schedules/WeeklyBudgetSettings.jsx'
+import ScheduleBudgetPanel from '../../components/schedules/ScheduleBudgetPanel.jsx'
+import { Modal } from 'antd'
 import {
   createSchedulePeriod,
   getSchedulePeriods,
@@ -72,6 +75,7 @@ export default function SchedulePeriodManagementPage() {
   const [autoSchedulePeriod, setAutoSchedulePeriod] = useState(null)
   const [publishingSchedulePeriod, setPublishingSchedulePeriod] = useState(null)
   const [lockingId, setLockingId] = useState(null)
+  const [budgetPeriod, setBudgetPeriod] = useState(null)
 
   useEffect(() => {
     if (managerScoped) return undefined
@@ -245,6 +249,7 @@ export default function SchedulePeriodManagementPage() {
       align: 'center',
       render: (_, schedulePeriod) => (
         <Space size={2}>
+          <Button size="small" onClick={() => setBudgetPeriod(schedulePeriod)}>Ngân sách</Button>
           <Tooltip title="Quản lý ca làm">
             <Button
               type="text"
@@ -360,6 +365,9 @@ export default function SchedulePeriodManagementPage() {
         <Button icon={<ReloadOutlined />} onClick={resetFilters}>Đặt lại</Button>
       </section>
 
+      {filters.locationId && <WeeklyBudgetSettings key={filters.locationId} locationId={filters.locationId} />}
+      {!filters.locationId && <Alert type="info" title="Chọn một chi nhánh để cấu hình ngân sách tuần." />}
+
       <section className="management-card employee-table-card">
         <div className="table-heading">
           <div>
@@ -387,6 +395,10 @@ export default function SchedulePeriodManagementPage() {
           scroll={{ x: 900 }}
         />
       </section>
+
+      <Modal title={`Ngân sách · ${budgetPeriod?.name || ''}`} open={Boolean(budgetPeriod)} footer={null} width={1100} onCancel={() => setBudgetPeriod(null)}>
+        {budgetPeriod && <ScheduleBudgetPanel key={budgetPeriod.id} periodId={budgetPeriod.id} />}
+      </Modal>
 
       <SchedulePeriodFormDrawer
         open={drawerOpen}

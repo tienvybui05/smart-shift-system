@@ -173,6 +173,7 @@ Một nhân viên chỉ được xếp khi đáp ứng toàn bộ ràng buộc s
 - CP-SAT tạo lịch ban đầu; ALNS lựa chọn vùng phân công và CP-SAT giải lại vùng đó.
 - Ưu tiên giảm thiếu nhân sự, rồi ưu tiên nhu cầu quan trọng, sau đó tối ưu định mức giờ,
   công bằng, nguyện vọng và chi phí/ngân sách tuần.
+- Admin/Manager cấu hình ngân sách tuần tại Kỳ xếp lịch; dự toán tách chi phí kỳ này/kỳ khác cùng tuần và cảnh báo vượt trước công bố. Ngân sách là mục tiêu mềm. Xem [hướng dẫn ngân sách](docs/WEEKLY_SCHEDULING_BUDGET.md).
 - Kiểm tra lịch rảnh, nghỉ phép, vị trí, trùng ca, giờ nghỉ, giới hạn giờ ngày/tuần và ngày liên tiếp.
 - Giữ nguyên mọi phân công đã lưu; chỉ bổ sung đến số lượng tối thiểu còn thiếu trong kỳ Nháp.
 - Kết quả trả thêm thuật toán, trạng thái bộ giải, điểm phạt toàn lịch, số vòng ALNS, thời gian và seed.

@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import { generateAutomaticSchedule } from '../../services/autoScheduleService.js'
+import ScheduleBudgetPanel from './ScheduleBudgetPanel.jsx'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -220,6 +221,7 @@ export default function AutoScheduleModal({
         </Button>,
       ]}
     >
+      <ScheduleBudgetPanel periodId={schedulePeriod.id} refreshKey={result ? 1 : 0} />
       {!result ? (
         <div className="auto-schedule-confirmation">
           <Alert

@@ -38,6 +38,7 @@ public record LocationRequest(
     Integer attendanceRadiusMeters,
 
     @DecimalMin(value = "0.0", message = "Quỹ lương tuần không được âm")
+    @jakarta.validation.constraints.Digits(integer=13, fraction=2, message="Quỹ lương tuần tối đa 13 chữ số nguyên và 2 chữ số thập phân")
     BigDecimal weeklyBudget,
 
     @Size(max = 100, message = "Tên Wi-Fi không được vượt quá 100 ký tự")

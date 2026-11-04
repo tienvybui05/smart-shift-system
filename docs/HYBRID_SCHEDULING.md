@@ -82,6 +82,9 @@ Chi phí mỗi ca tính từ phút thực tế của ca, basePayAmount và salar
 làm tròn đến nghìn đồng cho mô hình tối ưu. Payroll vẫn giữ cách tính tiền hiện tại.
 Ngân sách là mục tiêu mềm: cho phép vượt để không đánh đổi việc đủ người.
 
+Ngân sách có thể cấu hình tại màn hình Kỳ xếp lịch. Báo cáo chi phí theo tuần bao gồm
+các kỳ khác cùng chi nhánh và cảnh báo trước công bố; xem [ngân sách tuần](WEEKLY_SCHEDULING_BUDGET.md).
+
 Các biến thiếu định mức, vượt chuẩn và vượt ngân sách được ràng buộc bằng giá trị
 `max(0, biểu thức)` chính xác. Chỉ dùng bất đẳng thức cận dưới có thể để biến phạt còn dư
 ở một nghiệm FEASIBLE, khiến điểm dùng nhận/từ chối incumbent khác điểm tính từ lịch.

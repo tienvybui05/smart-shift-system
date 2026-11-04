@@ -17,6 +17,27 @@ import java.util.Optional;
 
 public interface ShiftAssignmentRepository extends JpaRepository<ShiftAssignment, Long> {
 
+    interface BudgetAssignment {
+        Long getPeriodId();
+        Instant getStartAt();
+        Instant getEndAt();
+        Short getBreakMinutes();
+        java.math.BigDecimal getBasePayAmount();
+        java.math.BigDecimal getSalaryCoefficient();
+    }
+
+    @Query("""
+        select a.workShift.schedulePeriod.id as periodId, a.workShift.startAt as startAt,
+          a.workShift.endAt as endAt, a.workShift.breakMinutes as breakMinutes,
+          a.user.basePayAmount as basePayAmount, a.user.salaryCoefficient as salaryCoefficient
+        from ShiftAssignment a where a.workShift.schedulePeriod.location.id=:locationId
+          and a.status in (com.smartshift.enums.AssignmentStatus.ASSIGNED,com.smartshift.enums.AssignmentStatus.CONFIRMED)
+          and a.workShift.status<>com.smartshift.enums.WorkShiftStatus.CANCELLED
+          and a.workShift.startAt>=:from and a.workShift.startAt<:to
+        """)
+    List<BudgetAssignment> findBudgetAssignments(@Param("locationId") Long locationId,
+        @Param("from") Instant from,@Param("to") Instant to);
+
     @EntityGraph(attributePaths = {"user", "user.position", "workShift", "workShift.schedulePeriod", "workShift.schedulePeriod.location"})
     @Query("""
         SELECT assignment FROM ShiftAssignment assignment

@@ -8,6 +8,48 @@ servers:
     description: Local server
 components:
   schemas:
+    WeeklyBudgetRequest:
+      type: object
+      properties:
+        weeklyBudget:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 9999999999999.99
+          multipleOf: 0.01
+          description: VND mỗi tuần; null bỏ cấu hình, 0 là ngân sách bằng 0. Đây là mục tiêu mềm.
+    WeeklyBudgetSettings:
+      type: object
+      properties:
+        locationId: {type: integer, format: int64}
+        locationName: {type: string}
+        timezone: {type: string}
+        weeklyBudget: {type: number, nullable: true}
+    ScheduleBudgetWeek:
+      type: object
+      properties:
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        periodCost: {type: number}
+        otherPeriodsCost: {type: number}
+        totalCost: {type: number}
+        excess: {type: number, minimum: 0}
+        remaining: {type: number, nullable: true}
+        utilizationPercent: {type: number, nullable: true, description: Null khi chưa cấu hình hoặc ngân sách bằng 0}
+        assignedShifts: {type: integer}
+    ScheduleBudgetResponse:
+      type: object
+      properties:
+        schedulePeriodId: {type: integer, format: int64}
+        locationId: {type: integer, format: int64}
+        locationName: {type: string}
+        timezone: {type: string}
+        weeklyBudget: {type: number, nullable: true}
+        periodCost: {type: number}
+        overBudget: {type: boolean}
+        weeks:
+          type: array
+          items: {$ref: '#/components/schemas/ScheduleBudgetWeek'}
     AttendanceCorrectionRequest:
       type: object
       required: [shiftAssignmentId, checkInAt, checkOutAt, breakMinutes, reason]
@@ -333,6 +375,49 @@ paths:
                 items: {$ref: '#/components/schemas/AttendanceHistoryResponse'}
         '403': {description: Không có quyền hoặc ngoài chi nhánh}
         '404': {description: Không thấy phân công}
+  /api/scheduling-budgets/locations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CorrectionId'
+    get:
+      summary: Đọc ngân sách tuần của chi nhánh trong phạm vi Admin/Manager
+      responses:
+        '200':
+          description: Cấu hình hiện tại
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WeeklyBudgetSettings'}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+        '404': {description: Không thấy chi nhánh}
+    patch:
+      summary: Cập nhật riêng ngân sách tuần, không thay đổi GPS hoặc cấu hình mạng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WeeklyBudgetRequest'}
+      responses:
+        '200':
+          description: Cấu hình đã lưu; không tự xếp lại phân công
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WeeklyBudgetSettings'}
+        '400': {description: Số tiền âm, quá lớn hoặc quá 2 chữ số thập phân}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+        '404': {description: Không thấy chi nhánh}
+  /api/scheduling-budgets/periods/{id}:
+    get:
+      summary: Dự toán chi phí các tuần giao với kỳ lịch
+      description: Bao gồm phân công còn hiệu lực từ mọi kỳ cùng chi nhánh; dùng mức lương hiện tại, không phải lương thực tế. Vượt ngân sách không chặn công bố.
+      parameters:
+        - $ref: '#/components/parameters/CorrectionId'
+      responses:
+        '200':
+          description: Phân tách kỳ hiện tại, kỳ khác, tổng tuần và phần vượt
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScheduleBudgetResponse'}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+        '404': {description: Không thấy kỳ lịch}
   /actuator/health:
     get:
       summary: Kiểm tra sức khỏe hệ thống
