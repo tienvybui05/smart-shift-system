@@ -17,6 +17,7 @@ import {
   Input,
   Popconfirm,
   Select,
+  Space,
   Table,
   Tabs,
   Tag,
@@ -27,6 +28,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
 import AttendanceApprovalModal from '../../components/attendance/AttendanceApprovalModal.jsx'
+import AttendanceCorrectionsPanel from '../../components/attendance/AttendanceCorrectionsPanel.jsx'
+import AttendanceHistoryButton from '../../components/attendance/AttendanceHistoryButton.jsx'
 import useAuth from '../../hooks/useAuth.js'
 import {
   approveAttendance,
@@ -157,7 +160,7 @@ function exportAttendancesToCsv(attendances, fileName = 'bang_cham_cong.csv') {
     item.overtimeMinutes || 0,
     STATUS_CONFIG[item.status]?.label || item.status,
     item.unverifiedDevice ? 'TB chưa duyệt' : 'Hợp lệ',
-    item.unverifiedWifi ? 'Sai Wi-Fi' : 'Khớp Wi-Fi',
+    item.unverifiedWifi ? 'M?ng ch?a x?c minh' : 'Khớp Wi-Fi',
     item.checkInIpAddress || '',
     item.checkInWifiSsid || '',
     item.approvedAt ? 'Đã duyệt' : 'Chưa duyệt',
@@ -220,7 +223,7 @@ export default function AttendanceManagementPage() {
 
   // Employee Devices State
   const [devices, setDevices] = useState([])
-  const [devicesLoading, setDevicesLoading] = useState(false)
+  const [devicesLoading, setDevicesLoading] = useState(true)
   const [deviceStatusFilter, setDeviceStatusFilter] = useState(undefined)
   const [deviceLocationFilter, setDeviceLocationFilter] = useState(isAdmin ? undefined : user.locationId)
   const [deviceRefreshKey, setDeviceRefreshKey] = useState(0)
@@ -271,7 +274,6 @@ export default function AttendanceManagementPage() {
   // Load Devices
   useEffect(() => {
     let mounted = true
-    setDevicesLoading(true)
     getDevices({
       locationId: deviceLocationFilter,
       status: deviceStatusFilter,
@@ -357,6 +359,7 @@ export default function AttendanceManagementPage() {
   function refreshAll() {
     setLoading(true)
     setRefreshKey((k) => k + 1)
+    setDevicesLoading(true)
     setDeviceRefreshKey((k) => k + 1)
   }
 
@@ -480,7 +483,7 @@ export default function AttendanceManagementPage() {
             )}
             {item.unverifiedWifi && (
               <Tooltip title={`Không khớp mạng Wi-Fi chi nhánh (IP: ${item.checkInIpAddress || '—'}, Wi-Fi: ${item.checkInWifiSsid || '—'})`}>
-                <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+                <Tag color="error" icon={<WifiOutlined />}>M?ng ch?a x?c minh</Tag>
               </Tooltip>
             )}
           </div>
@@ -499,6 +502,7 @@ export default function AttendanceManagementPage() {
       width: 90,
       align: 'center',
       render: (_, item) => (
+        <Space wrap>
         <Tooltip title={item.approvedAt ? 'Xem và điều chỉnh lại' : 'Duyệt chấm công'}>
           <Button
             icon={item.approvedAt ? <EditOutlined /> : <CheckCircleOutlined />}
@@ -506,6 +510,8 @@ export default function AttendanceManagementPage() {
             type="text"
           />
         </Tooltip>
+        <AttendanceHistoryButton assignmentId={item.shiftAssignmentId} timezone={item.timezone} />
+        </Space>
       ),
     },
   ]
@@ -640,6 +646,7 @@ export default function AttendanceManagementPage() {
   ]
 
   const tabItems = [
+    { key: 'corrections', label: 'Điều chỉnh công', children: <AttendanceCorrectionsPanel reviewer locations={locations} onChanged={refreshAll} /> },
     {
       key: 'attendances',
       label: (
@@ -775,7 +782,7 @@ export default function AttendanceManagementPage() {
               allowClear={isAdmin}
               disabled={!isAdmin && Boolean(user.locationId)}
               loading={locationsLoading}
-              onChange={(value) => setDeviceLocationFilter(value)}
+              onChange={(value) => { if (value !== deviceLocationFilter) { setDevicesLoading(true); setDeviceLocationFilter(value) } }}
               options={locations.map((loc) => ({
                 label: loc.code ? `${loc.code} — ${loc.name}` : loc.name,
                 value: loc.id,
@@ -787,7 +794,7 @@ export default function AttendanceManagementPage() {
             />
             <Select
               allowClear
-              onChange={(value) => setDeviceStatusFilter(value)}
+              onChange={(value) => { if (value !== deviceStatusFilter) { setDevicesLoading(true); setDeviceStatusFilter(value) } }}
               options={[
                 { label: 'Chờ duyệt', value: 'PENDING' },
                 { label: 'Đã duyệt', value: 'APPROVED' },
@@ -799,7 +806,7 @@ export default function AttendanceManagementPage() {
             />
             <Button
               icon={<ReloadOutlined />}
-              onClick={() => setDeviceRefreshKey((k) => k + 1)}
+              onClick={() => { setDevicesLoading(true); setDeviceRefreshKey((k) => k + 1) }}
             >
               Làm mới
             </Button>

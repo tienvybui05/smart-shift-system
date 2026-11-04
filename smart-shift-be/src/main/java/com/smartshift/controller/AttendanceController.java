@@ -31,6 +31,7 @@ import java.util.List;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final com.smartshift.security.AttendanceClientIpResolver clientIpResolver;
 
     @PostMapping("/check-in")
     public ResponseEntity<AttendanceResponse> checkIn(
@@ -38,7 +39,7 @@ public class AttendanceController {
         Authentication authentication,
         jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
-        String clientIp = extractClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(
             attendanceService.checkIn(authentication.getName(), request, clientIp)
         );
@@ -50,21 +51,10 @@ public class AttendanceController {
         Authentication authentication,
         jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
-        String clientIp = extractClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
         return ResponseEntity.ok(
             attendanceService.checkOut(authentication.getName(), request, clientIp)
         );
-    }
-
-    private String extractClientIp(jakarta.servlet.http.HttpServletRequest request) {
-        if (request == null) {
-            return null;
-        }
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     @GetMapping("/me")

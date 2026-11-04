@@ -43,7 +43,8 @@ public class PayrollMapper {
             confirmedBy == null ? null : confirmedBy.getFullName(),
             record.getConfirmedAt(),
             record.getCreatedAt(),
-            record.getUpdatedAt()
+            record.getUpdatedAt(),
+            record.isSourceChanged()
         );
     }
 }

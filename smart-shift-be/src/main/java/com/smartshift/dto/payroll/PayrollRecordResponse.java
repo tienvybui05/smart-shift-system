@@ -32,6 +32,7 @@ public record PayrollRecordResponse(
     String confirmedByName,
     Instant confirmedAt,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    boolean sourceChanged
 ) {
 }

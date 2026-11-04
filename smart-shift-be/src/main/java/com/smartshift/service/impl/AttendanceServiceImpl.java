@@ -58,6 +58,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final EmployeeDeviceService employeeDeviceService;
     private final AttendanceMapper attendanceMapper;
     private final Clock clock;
+    private final com.smartshift.service.AttendanceIntegrityService integrity;
+    private final com.smartshift.service.AttendanceHistoryService history;
 
     @Override
     @Transactional
@@ -80,6 +82,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
         validateAssignmentOwner(assignment, username);
         validateCheckInAssignment(assignment);
+        integrity.requireMutable(assignment);
 
         Instant checkedInAt = clock.instant();
         validateCheckInWindow(assignment.getWorkShift(), checkedInAt);
@@ -124,9 +127,10 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setUnverifiedWifi(!wifiVerified);
         recalculateAttendance(attendance);
 
-        return attendanceMapper.toResponse(
-            attendanceRepository.save(attendance)
-        );
+        attendanceRepository.saveAndFlush(attendance);
+        integrity.markPayrollStale(assignment);
+        history.record(attendance, "null", assignment.getUser(), "CHECK_IN", "Chấm công vào ca");
+        return attendanceMapper.toResponse(attendance);
     }
 
     @Override
@@ -150,6 +154,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
         validateAssignmentOwner(assignment, username);
         validateCheckoutAssignment(assignment);
+        integrity.requireMutable(assignment);
 
         Attendance attendance = attendanceRepository
             .findDetailedByShiftAssignmentIdForUpdate(assignment.getId())
@@ -166,6 +171,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 "Ca làm này đã được check-out"
             );
         }
+        String before = history.snapshot(attendance);
 
         Instant checkedOutAt = clock.instant();
         validateCheckOutWindow(
@@ -209,9 +215,10 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
         recalculateAttendance(attendance);
 
-        return attendanceMapper.toResponse(
-            attendanceRepository.save(attendance)
-        );
+        attendanceRepository.saveAndFlush(attendance);
+        integrity.markPayrollStale(assignment);
+        history.record(attendance, before, assignment.getUser(), "CHECK_OUT", "Chấm công ra ca");
+        return attendanceMapper.toResponse(attendance);
     }
 
     private boolean validateWifi(
@@ -224,48 +231,8 @@ public class AttendanceServiceImpl implements AttendanceService {
             return true;
         }
 
-        boolean ipMatches = false;
-        if (location.getAllowedIpAddress() != null && !location.getAllowedIpAddress().isBlank()) {
-            ipMatches = isIpAllowed(clientIp, location.getAllowedIpAddress());
-        }
-
-        boolean ssidMatches = false;
-        if (location.getWifiSsid() != null && !location.getWifiSsid().isBlank()) {
-            ssidMatches = requestWifiSsid != null
-                && location.getWifiSsid().trim().equalsIgnoreCase(requestWifiSsid.trim());
-        }
-
-        boolean bssidMatches = false;
-        if (location.getWifiBssid() != null && !location.getWifiBssid().isBlank()) {
-            bssidMatches = requestWifiBssid != null
-                && location.getWifiBssid().trim().equalsIgnoreCase(requestWifiBssid.trim());
-        }
-
-        return ipMatches || ssidMatches || bssidMatches;
-    }
-
-    private boolean isIpAllowed(String clientIp, String allowedIpPattern) {
-        if (clientIp == null || clientIp.isBlank() || allowedIpPattern == null) {
-            return false;
-        }
-        String[] allowedList = allowedIpPattern.split("[,;]");
-        for (String pattern : allowedList) {
-            String trimmed = pattern.trim();
-            if (trimmed.equals(clientIp)) {
-                return true;
-            }
-            if (trimmed.endsWith(".*")) {
-                String prefix = trimmed.substring(0, trimmed.length() - 1);
-                if (clientIp.startsWith(prefix)) {
-                    return true;
-                }
-            }
-            if (("127.0.0.1".equals(clientIp) || "0:0:0:0:0:0:0:1".equals(clientIp))
-                && ("localhost".equalsIgnoreCase(trimmed) || "127.0.0.1".equals(trimmed))) {
-                return true;
-            }
-        }
-        return false;
+        // SSID/BSSID from a browser are declarations, not proof of network membership.
+        return com.smartshift.security.NetworkAddressMatcher.matches(clientIp, location.getAllowedIpAddress());
     }
 
     @Override
@@ -324,6 +291,11 @@ public class AttendanceServiceImpl implements AttendanceService {
         Long attendanceId,
         AttendanceApprovalRequest request
     ) {
+        Long assignmentId = attendanceRepository.findAssignmentIdByAttendanceId(attendanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bản chấm công"));
+        schedulingAccessService.requireAssignment(username, assignmentId);
+        ShiftAssignment assignment = integrity.lockAssignment(assignmentId);
+        integrity.requireMutable(assignment);
         Attendance attendance = attendanceRepository
             .findDetailedByIdForUpdate(attendanceId)
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -337,18 +309,23 @@ public class AttendanceServiceImpl implements AttendanceService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Không tìm thấy người dùng hiện tại"
             ));
+        if (reviewer.getId().equals(assignment.getUser().getId())) {
+            throw new BusinessRuleException("Không thể tự duyệt công của chính mình");
+        }
+        String before = history.snapshot(attendance);
 
         applyApproval(request, attendance);
         attendance.setApprovedBy(reviewer);
         attendance.setApprovedAt(clock.instant());
         attendance.setNote(normalizeNullableText(request.note()));
 
-        return attendanceMapper.toResponse(
-            attendanceRepository.save(attendance)
-        );
+        attendanceRepository.saveAndFlush(attendance);
+        integrity.markPayrollStale(assignment);
+        history.record(attendance, before, reviewer, "MANUAL_APPROVAL", request.note().trim());
+        return attendanceMapper.toResponse(attendance);
     }
 
-    private void applyApproval(
+    void applyApproval(
         AttendanceApprovalRequest request,
         Attendance attendance
     ) {
@@ -404,10 +381,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     private ShiftAssignment findAssignmentForUpdate(Long assignmentId) {
-        return shiftAssignmentRepository.findByIdForUpdate(assignmentId)
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Không tìm thấy phân công ca với id " + assignmentId
-            ));
+        return integrity.lockAssignment(assignmentId);
     }
 
     private void validateAssignmentOwner(

@@ -54,6 +54,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     Optional<Attendance> findByShiftAssignmentId(Long shiftAssignmentId);
 
+    @Query("select a.shiftAssignment.id from Attendance a where a.id=:id")
+    Optional<Long> findAssignmentIdByAttendanceId(@Param("id") Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT attendance

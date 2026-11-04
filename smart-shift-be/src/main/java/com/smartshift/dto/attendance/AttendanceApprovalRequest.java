@@ -16,6 +16,7 @@ public record AttendanceApprovalRequest(
     @Max(value = 1440, message = "Thời gian nghỉ không được vượt quá 1440 phút")
     Short breakMinutes,
 
+    @jakarta.validation.constraints.NotBlank(message = "Vui lòng nhập lý do đối soát công")
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự")
     String note
 ) {

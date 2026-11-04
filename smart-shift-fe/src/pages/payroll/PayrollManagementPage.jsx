@@ -274,7 +274,9 @@ export default function PayrollManagementPage() {
       title: 'Trạng thái',
       dataIndex: 'status',
       width: 120,
-      render: (status) => status === 'CONFIRMED'
+      render: (status, record) => record.sourceChanged
+        ? <Tag color="warning">Cần tính lại công</Tag>
+        : status === 'CONFIRMED'
         ? <Tag color="success">Đã xác nhận</Tag>
         : <Tag color="processing">Bản nháp</Tag>,
     },
@@ -297,14 +299,14 @@ export default function PayrollManagementPage() {
           <Popconfirm
             cancelText="Hủy"
             description="Sau khi xác nhận, bảng lương này không thể tính lại hoặc sửa thưởng."
-            disabled={record.status === 'CONFIRMED'}
+            disabled={record.status === 'CONFIRMED' || record.sourceChanged}
             okText="Xác nhận"
             onConfirm={() => handleConfirm(record)}
             title={`Xác nhận bảng lương của ${record.employeeName}?`}
           >
-            <Tooltip title={record.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Xác nhận bảng lương'}>
+            <Tooltip title={record.sourceChanged ? 'Công đã thay đổi: cần tính lại lương' : record.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Xác nhận bảng lương'}>
               <Button
-                disabled={record.status === 'CONFIRMED'}
+                disabled={record.status === 'CONFIRMED' || record.sourceChanged}
                 icon={<CheckCircleOutlined />}
                 type="text"
               />

@@ -54,6 +54,7 @@ public class PayrollServiceImpl implements PayrollService {
     private final SchedulingAccessService schedulingAccessService;
     private final NotificationService notificationService;
     private final PayrollMapper payrollMapper;
+    private final com.smartshift.repository.AttendanceCorrectionRepository attendanceCorrections;
 
     @Override
     public List<PayrollRecordResponse> getPayrollRecords(
@@ -123,7 +124,12 @@ public class PayrollServiceImpl implements PayrollService {
             .stream()
             .filter(user -> isEmployee(user)
                 || (isAdmin(actor) && fullCalendarMonth && isManager(user)))
+            .sorted(java.util.Comparator.comparing(User::getId))
             .toList();
+
+        // Serialize payroll snapshots with attendance corrections/check-in/check-out.
+        for (User user : payrollUsers) userRepository.lockAttendanceEmployee(user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên tính lương"));
 
         ZoneId zoneId = ZoneId.of(location.getTimezone());
         Instant rangeStart = request.startDate().atStartOfDay(zoneId).toInstant();
@@ -161,6 +167,7 @@ public class PayrollServiceImpl implements PayrollService {
             record.setSalaryCoefficient(employee.getSalaryCoefficient());
             record.setCalculatedBy(actor);
             record.setStatus(PayrollStatus.DRAFT);
+            record.setSourceChanged(false);
             if (record.getBonusAmount() == null) {
                 record.setBonusAmount(BigDecimal.ZERO);
             }
@@ -204,6 +211,11 @@ public class PayrollServiceImpl implements PayrollService {
         String username,
         Long payrollRecordId
     ) {
+        var preliminary = payrollRecordRepository.findScope(payrollRecordId)
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bảng lương"));
+        schedulingAccessService.requireLocation(username, preliminary.getLocationId());
+        userRepository.lockAttendanceEmployee(preliminary.getUserId())
+            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên"));
         PayrollRecord record = findRecordForUpdate(payrollRecordId);
         schedulingAccessService.requireLocation(
             username,
@@ -213,6 +225,13 @@ public class PayrollServiceImpl implements PayrollService {
         requireCanManageRecord(actor, record);
         if (record.getStatus() == PayrollStatus.CONFIRMED) {
             return payrollMapper.toResponse(record);
+        }
+        ZoneId payrollZone = ZoneId.of(record.getLocation().getTimezone());
+        if (record.isSourceChanged()) throw new BusinessRuleException("Công đã thay đổi, hãy tính lại lương trước khi xác nhận");
+        if (attendanceCorrections.hasPendingForPayroll(record.getUser().getId(),
+                record.getPeriodStart().atStartOfDay(payrollZone).toInstant(),
+                record.getPeriodEnd().plusDays(1).atStartOfDay(payrollZone).toInstant())) {
+            throw new BusinessRuleException("Còn yêu cầu điều chỉnh công đang chờ, hãy xử lý trước khi xác nhận lương");
         }
 
         record.setStatus(PayrollStatus.CONFIRMED);

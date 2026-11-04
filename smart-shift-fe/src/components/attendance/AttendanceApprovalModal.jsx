@@ -188,7 +188,7 @@ export default function AttendanceApprovalModal({
             <InputNumber min={0} max={1440} precision={0} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item label="Ghi chú của quản lý" name="note" rules={[{ max: 1000 }]}>
+          <Form.Item label="Lý do đối soát của quản lý" name="note" rules={[{ required: true, whitespace: true, message: 'Nhập lý do duyệt hoặc điều chỉnh công' }, { max: 1000 }]}>
             <Input.TextArea
               maxLength={1000}
               placeholder="Lý do điều chỉnh hoặc ghi chú xác nhận"

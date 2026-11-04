@@ -214,6 +214,9 @@ public class SecurityConfig {
                     "/api/attendances/check-in",
                     "/api/attendances/check-out"
                 ).hasRole("EMPLOYEE")
+                .requestMatchers("/api/attendance-corrections/me", "/api/attendance-corrections/me/**")
+                    .hasRole("EMPLOYEE")
+                .requestMatchers("/api/attendance-corrections/**").hasAnyRole("ADMIN", "MANAGER")
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/attendances/me"

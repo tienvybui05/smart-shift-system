@@ -235,11 +235,18 @@ Chỉ ca tương lai thuộc lịch đã công bố nhưng chưa khóa, chưa c�
 - Tự tạo bản ghi `ABSENT` cho phân công đã kết thúc nhưng không check-in; tác vụ mặc định chạy mỗi 15 phút.
 - Admin/Manager xem theo ngày, chi nhánh, nhân viên, trạng thái và có thể điều chỉnh/duyệt bản công kèm ghi chú.
 
+Nhân viên có thể gửi đơn bổ sung/điều chỉnh công cho ca đã kết thúc trong 30 ngày;
+quản lý xét duyệt trong tab **Điều chỉnh công**. Mọi thay đổi công mới có lịch sử trước/sau.
+Mạng được xác minh bằng IP server nhận từ proxy tin cậy; SSID/BSSID tự khai chỉ dùng đối soát.
+Xem [quy trình, cấu hình mạng và kiểm thử](docs/ATTENDANCE_WORKFLOW.md).
+
 ### 14. Tính công và lương dự tính
 
 - Admin/Manager chọn chi nhánh và khoảng ngày, tối đa 93 ngày.
 - Chỉ dùng bản chấm công đã có check-in, check-out và được quản lý duyệt.
 - Giữ nguyên bảng lương đã xác nhận khi chạy tính lại.
+- Công thay đổi làm bảng lương nháp cần tính lại; chặn xác nhận khi công đã đổi hoặc còn đơn điều chỉnh chờ duyệt.
+- Không sửa công thuộc kỳ lương đã xác nhận.
 - Có thể nhập thưởng và ghi chú khi bảng lương còn Nháp.
 - Xác nhận từng bảng lương và gửi thông báo cho nhân viên.
 - Nhân viên xem lịch sử công/lương của chính mình.

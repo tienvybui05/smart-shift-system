@@ -10,6 +10,8 @@ export function getNotificationTarget(item, role) {
   }
 
   switch (item.referenceType) {
+    case 'ATTENDANCE_CORRECTION':
+      return role === 'ROLE_EMPLOYEE' ? '/attendance' : '/attendance/manage?tab=corrections'
     case 'SCHEDULE_PERIOD':
       return '/my-schedule'
     case 'TIME_OFF_REQUEST':

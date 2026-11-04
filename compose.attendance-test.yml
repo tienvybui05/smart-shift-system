@@ -1,0 +1,55 @@
+name: smart-shift-attendance
+# Independent fixtures; does not reuse the normal or hybrid E2E database volumes.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: smart-shift-attendance-db
+    environment:
+      POSTGRES_DB: attendance_qa
+      POSTGRES_USER: attendance_qa
+      POSTGRES_PASSWORD: attendance_local_only
+    volumes:
+      - attendance_qa_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendance_qa -d attendance_qa"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  backend:
+    build: ./smart-shift-be
+    image: smart-shift-attendance-backend:local
+    container_name: smart-shift-attendance-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/attendance_qa
+      SPRING_DATASOURCE_USERNAME: attendance_qa
+      SPRING_DATASOURCE_PASSWORD: attendance_local_only
+      JWT_SECRET: attendance-qa-secret-isolated-local-only-2026
+      BOOTSTRAP_ADMIN_USERNAME: admin
+      BOOTSTRAP_ADMIN_PASSWORD: Demo@123456
+      LARK_ENABLED: "false"
+      LARK_APP_ENABLED: "false"
+      ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED: "false"
+      ATTENDANCE_TRUSTED_PROXIES: 172.31.238.10/32
+    ports:
+      - "127.0.0.1:28080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    build: ./smart-shift-fe
+    image: smart-shift-attendance-frontend:local
+    container_name: smart-shift-attendance-frontend
+    ports:
+      - "127.0.0.1:23000:80"
+    networks:
+      default:
+        ipv4_address: 172.31.238.10
+    depends_on:
+      - backend
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.31.238.0/24
+volumes:
+  attendance_qa_data:

@@ -20,6 +20,8 @@ import {
   getMyAttendances,
 } from '../../services/attendanceService.js'
 import { getMyDevices } from '../../services/employeeDeviceService.js'
+import AttendanceCorrectionsPanel from '../../components/attendance/AttendanceCorrectionsPanel.jsx'
+import AttendanceHistoryButton from '../../components/attendance/AttendanceHistoryButton.jsx'
 import { getMyWorkSchedule } from '../../services/myScheduleService.js'
 import { getDeviceFingerprint, getDeviceLabel } from '../../utils/deviceFingerprint.js'
 
@@ -280,7 +282,7 @@ export default function MyAttendancePage() {
     const expl = deviceExplanation
     const wifi = inputWifiSsid.trim()
     if (wifi) {
-      try { localStorage.setItem('smartshift_last_wifi', wifi) } catch {}
+      try { localStorage.setItem('smartshift_last_wifi', wifi) } catch { /* Storage can be unavailable; attendance still works. */ }
     }
     setExplanationModalOpen(false)
     await handleAttendanceAction(shift, action, expl, wifi)
@@ -356,6 +358,7 @@ export default function MyAttendancePage() {
   }
 
   const columns = [
+    { title: 'Lịch sử', render: (_, row) => <AttendanceHistoryButton assignmentId={row.shiftAssignmentId} mine timezone={row.timezone} /> },
     {
       title: 'Ngày làm việc',
       dataIndex: 'workDate',
@@ -423,7 +426,7 @@ export default function MyAttendancePage() {
           )}
           {item.unverifiedWifi && (
             <Tooltip title={`Không khớp mạng Wi-Fi chi nhánh (IP: ${item.checkInIpAddress || '—'})`}>
-              <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+              <Tag color="error" icon={<WifiOutlined />}>M?ng ch?a x?c minh</Tag>
             </Tooltip>
           )}
         </div>
@@ -530,7 +533,7 @@ export default function MyAttendancePage() {
                           )}
                           {attendance.unverifiedWifi && (
                             <Tooltip title="Chấm công không khớp mạng Wi-Fi của chi nhánh">
-                              <Tag color="error" icon={<WifiOutlined />}>Sai Wi-Fi</Tag>
+                              <Tag color="error" icon={<WifiOutlined />}>M?ng ch?a x?c minh</Tag>
                             </Tooltip>
                           )}
                         </div>
@@ -643,6 +646,8 @@ export default function MyAttendancePage() {
           scroll={{ x: 1050 }}
         />
       </section>
+
+      <AttendanceCorrectionsPanel onChanged={() => setRefreshKey(value => value + 1)} />
 
       {/* Modal danh sách thiết bị của nhân viên */}
       <Modal

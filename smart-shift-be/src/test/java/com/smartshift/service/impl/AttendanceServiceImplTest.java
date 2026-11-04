@@ -66,6 +66,8 @@ class AttendanceServiceImplTest {
     @Mock
     private EmployeeDeviceService employeeDeviceService;
 
+    @Mock private com.smartshift.service.AttendanceIntegrityService integrity;
+    @Mock private com.smartshift.service.AttendanceHistoryService history;
     private AttendanceServiceImpl attendanceService;
 
     @BeforeEach
@@ -77,7 +79,7 @@ class AttendanceServiceImplTest {
             schedulingAccessService,
             employeeDeviceService,
             new AttendanceMapper(),
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC), integrity, history
         );
     }
 
@@ -125,8 +127,8 @@ class AttendanceServiceImplTest {
             NOW,
             NOW.plusSeconds(8 * 60 * 60)
         );
-        when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
-            .thenReturn(Optional.of(assignment));
+        when(integrity.lockAssignment(ASSIGNMENT_ID))
+            .thenReturn(assignment);
         when(attendanceRepository.findByShiftAssignmentId(ASSIGNMENT_ID))
             .thenReturn(Optional.empty());
 
@@ -146,8 +148,8 @@ class AttendanceServiceImplTest {
             NOW,
             NOW.plusSeconds(8 * 60 * 60)
         );
-        when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
-            .thenReturn(Optional.of(assignment));
+        when(integrity.lockAssignment(ASSIGNMENT_ID))
+            .thenReturn(assignment);
         when(attendanceRepository.findByShiftAssignmentId(ASSIGNMENT_ID))
             .thenReturn(Optional.empty());
 
@@ -167,8 +169,8 @@ class AttendanceServiceImplTest {
             NOW,
             NOW.plusSeconds(8 * 60 * 60)
         );
-        when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
-            .thenReturn(Optional.of(assignment));
+        when(integrity.lockAssignment(ASSIGNMENT_ID))
+            .thenReturn(assignment);
         when(attendanceRepository.findByShiftAssignmentId(ASSIGNMENT_ID))
             .thenReturn(Optional.of(attendance(assignment, NOW)));
 
@@ -192,12 +194,12 @@ class AttendanceServiceImplTest {
             assignment,
             NOW.minusSeconds(60 * 60)
         );
-        when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
-            .thenReturn(Optional.of(assignment));
+        when(integrity.lockAssignment(ASSIGNMENT_ID))
+            .thenReturn(assignment);
         when(attendanceRepository.findDetailedByShiftAssignmentIdForUpdate(
             ASSIGNMENT_ID
         )).thenReturn(Optional.of(attendance));
-        when(attendanceRepository.save(any(Attendance.class)))
+        when(attendanceRepository.saveAndFlush(any(Attendance.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = attendanceService.checkOut("employee", gpsRequest(
@@ -227,11 +229,13 @@ class AttendanceServiceImplTest {
         reviewer.setId(30L);
         reviewer.setFullName("Quản lý ca");
 
+        when(attendanceRepository.findAssignmentIdByAttendanceId(20L)).thenReturn(Optional.of(ASSIGNMENT_ID));
+        when(integrity.lockAssignment(ASSIGNMENT_ID)).thenReturn(assignment);
         when(attendanceRepository.findDetailedByIdForUpdate(20L))
             .thenReturn(Optional.of(attendance));
         when(userRepository.findByUsername("manager"))
             .thenReturn(Optional.of(reviewer));
-        when(attendanceRepository.save(any(Attendance.class)))
+        when(attendanceRepository.saveAndFlush(any(Attendance.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = attendanceService.approveAttendance(
@@ -240,7 +244,7 @@ class AttendanceServiceImplTest {
             new AttendanceApprovalRequest(null, null, (short) 0, "Vắng mặt")
         );
 
-        verify(schedulingAccessService).requireAssignment(
+        verify(schedulingAccessService, org.mockito.Mockito.times(2)).requireAssignment(
             "manager",
             ASSIGNMENT_ID
         );
@@ -268,7 +272,7 @@ class AttendanceServiceImplTest {
     }
 
     @Test
-    void checkInWithWifiRequired_MatchingSsid_SetsUnverifiedWifiFalse() {
+    void clientDeclaredMatchingSsidCannotVerifyNetwork() {
         ShiftAssignment assignment = assignment(NOW, NOW.plusSeconds(8 * 60 * 60));
         Location location = assignment.getWorkShift().getSchedulePeriod().getLocation();
         location.setWifiRequired(true);
@@ -288,7 +292,7 @@ class AttendanceServiceImplTest {
         );
 
         var response = attendanceService.checkIn("employee", request, "192.168.1.50");
-        org.junit.jupiter.api.Assertions.assertFalse(response.unverifiedWifi());
+        assertTrue(response.unverifiedWifi());
         assertEquals("SmartShift_Q1", response.checkInWifiSsid());
         assertEquals("192.168.1.50", response.checkInIpAddress());
     }
@@ -319,11 +323,11 @@ class AttendanceServiceImplTest {
     }
 
     private void stubNewAttendance(ShiftAssignment assignment) {
-        when(shiftAssignmentRepository.findByIdForUpdate(ASSIGNMENT_ID))
-            .thenReturn(Optional.of(assignment));
+        when(integrity.lockAssignment(ASSIGNMENT_ID))
+            .thenReturn(assignment);
         when(attendanceRepository.findByShiftAssignmentId(ASSIGNMENT_ID))
             .thenReturn(Optional.empty());
-        when(attendanceRepository.save(any(Attendance.class)))
+        when(attendanceRepository.saveAndFlush(any(Attendance.class)))
             .thenAnswer(invocation -> {
                 Attendance saved = invocation.getArgument(0);
                 saved.setId(20L);

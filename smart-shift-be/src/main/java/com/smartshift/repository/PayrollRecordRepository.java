@@ -14,6 +14,25 @@ import java.util.Optional;
 public interface PayrollRecordRepository
     extends JpaRepository<PayrollRecord, Long> {
 
+    interface Scope { Long getUserId(); Long getLocationId(); }
+    @Query("select p.user.id as userId, p.location.id as locationId from PayrollRecord p where p.id=:id")
+    Optional<Scope> findScope(@Param("id") Long id);
+
+    @Query("""
+        select count(p)>0 from PayrollRecord p where p.user.id=:userId
+          and p.status=com.smartshift.enums.PayrollStatus.CONFIRMED
+          and p.periodStart<=:end and p.periodEnd>=:start
+        """)
+    boolean hasConfirmedOverlap(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+        update PayrollRecord p set p.sourceChanged=true where p.user.id=:userId
+          and p.status=com.smartshift.enums.PayrollStatus.DRAFT
+          and p.periodStart<=:end and p.periodEnd>=:start
+        """)
+    int markDraftSourceChanged(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
     @Query("""
         SELECT record
         FROM PayrollRecord record

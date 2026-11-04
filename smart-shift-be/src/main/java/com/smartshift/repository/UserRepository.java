@@ -39,6 +39,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT user FROM User user WHERE user.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
 
+    // Scalar native locking avoids entity-graph/follow-on locking and cached entity state.
+    // All attendance mutations and payroll snapshots acquire this same employee mutex first.
+    @Query(value = "SELECT id FROM users WHERE id = :id FOR UPDATE", nativeQuery = true)
+    Optional<Long> lockAttendanceEmployee(@Param("id") Long id);
+
     Optional<User> findByEmployeeCode(String employeeCode);
 
     Optional<User> findByEmail(String email);

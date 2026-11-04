@@ -7,6 +7,79 @@ servers:
   - url: http://localhost:8080
     description: Local server
 components:
+  schemas:
+    AttendanceCorrectionRequest:
+      type: object
+      required: [shiftAssignmentId, checkInAt, checkOutAt, breakMinutes, reason]
+      properties:
+        shiftAssignmentId: {type: integer, format: int64, minimum: 1}
+        checkInAt: {type: string, format: date-time}
+        checkOutAt: {type: string, format: date-time}
+        breakMinutes: {type: integer, minimum: 0, maximum: 1440}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+    AttendanceCorrectionReview:
+      type: object
+      required: [approved, note]
+      properties:
+        approved: {type: boolean}
+        note: {type: string, minLength: 1, maxLength: 1000}
+    AttendanceCorrectionResponse:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+        shiftAssignmentId: {type: integer, format: int64}
+        employeeId: {type: integer, format: int64}
+        employeeCode: {type: string}
+        employeeName: {type: string}
+        locationId: {type: integer, format: int64}
+        locationName: {type: string}
+        timezone: {type: string}
+        workDate: {type: string, format: date}
+        shiftStartAt: {type: string, format: date-time}
+        shiftEndAt: {type: string, format: date-time}
+        checkInAt: {type: string, format: date-time}
+        checkOutAt: {type: string, format: date-time}
+        breakMinutes: {type: integer}
+        reason: {type: string}
+        status: {type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED]}
+        beforeData:
+          type: string
+          description: JSON snapshot bản công lúc gửi; chuỗi null khi chưa có công.
+        reviewedByName: {type: string, nullable: true}
+        reviewedAt: {type: string, format: date-time, nullable: true}
+        reviewNote: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+    AttendanceHistoryResponse:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+        actorName: {type: string}
+        action: {type: string, enum: [CHECK_IN, CHECK_OUT, MANUAL_APPROVAL, CORRECTION_APPROVED]}
+        reason: {type: string}
+        beforeData: {type: string, description: JSON snapshot trước thay đổi}
+        afterData: {type: string, description: JSON snapshot sau thay đổi}
+        createdAt: {type: string, format: date-time}
+  parameters:
+    CorrectionStart:
+      in: query
+      name: startDate
+      required: true
+      schema: {type: string, format: date}
+    CorrectionEnd:
+      in: query
+      name: endDate
+      required: true
+      schema: {type: string, format: date}
+    CorrectionId:
+      in: path
+      name: id
+      required: true
+      schema: {type: integer, format: int64, minimum: 1}
+    AttendanceAssignmentId:
+      in: query
+      name: shiftAssignmentId
+      required: true
+      schema: {type: integer, format: int64, minimum: 1}
   securitySchemes:
     bearerAuth:
       type: http
@@ -133,6 +206,133 @@ paths:
                 properties:
                   token:
                     type: string
+  /api/attendance-corrections/me:
+    get:
+      summary: Nhân viên xem đơn điều chỉnh công của mình
+      description: Lọc ngày ca theo múi giờ chi nhánh; khoảng tra cứu tối đa 93 ngày.
+      parameters:
+        - $ref: '#/components/parameters/CorrectionStart'
+        - $ref: '#/components/parameters/CorrectionEnd'
+      responses:
+        '200':
+          description: Danh sách đơn của nhân viên
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AttendanceCorrectionResponse'}
+        '400': {description: Khoảng ngày sai}
+        '403': {description: Chỉ Employee}
+    post:
+      summary: Nhân viên gửi đơn bổ sung hoặc điều chỉnh công
+      description: >
+        Chỉ ca đã kết thúc trong 30 ngày, thuộc người gửi và lịch đã công bố.
+        Tạo đơn PENDING, chưa sửa công. Chặn khi có đơn chờ trùng hoặc kỳ lương đã xác nhận.
+        Giờ vào tối đa 2 giờ trước ca, giờ ra tối đa 12 giờ sau ca và không ở tương lai.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AttendanceCorrectionRequest'}
+      responses:
+        '201':
+          description: Đã tạo đơn chờ duyệt
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttendanceCorrectionResponse'}
+        '400': {description: Dữ liệu hoặc trạng thái nghiệp vụ không hợp lệ}
+        '403': {description: Chỉ Employee}
+        '404': {description: Không thấy phân công hoặc không sở hữu}
+        '409': {description: Đã có đơn chờ cho ca này}
+  /api/attendance-corrections/me/{id}/cancel:
+    patch:
+      summary: Nhân viên hủy đơn PENDING của mình
+      parameters:
+        - $ref: '#/components/parameters/CorrectionId'
+      responses:
+        '200':
+          description: Đã hủy đơn, công không thay đổi
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttendanceCorrectionResponse'}
+        '400': {description: Đơn không còn PENDING}
+        '403': {description: Chỉ Employee}
+        '404': {description: Không thấy hoặc không sở hữu}
+  /api/attendance-corrections:
+    get:
+      summary: Admin hoặc quản lý xem hàng đợi điều chỉnh công
+      parameters:
+        - $ref: '#/components/parameters/CorrectionStart'
+        - $ref: '#/components/parameters/CorrectionEnd'
+        - in: query
+          name: locationId
+          schema: {type: integer, format: int64, minimum: 1}
+        - in: query
+          name: status
+          schema: {type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED]}
+      responses:
+        '200':
+          description: Danh sách trong phạm vi chi nhánh
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AttendanceCorrectionResponse'}
+        '400': {description: Bộ lọc sai}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+  /api/attendance-corrections/{id}/review:
+    patch:
+      summary: Duyệt hoặc từ chối đơn điều chỉnh công
+      description: >
+        Admin hoặc Manager đúng chi nhánh; không tự duyệt. Chỉ xử lý PENDING một lần.
+        Khi duyệt, kiểm tra baseline chưa thay đổi và lương chưa xác nhận; lưu công, audit,
+        đánh dấu lương nháp cần tính lại và gửi thông báo trong cùng transaction.
+      parameters:
+        - $ref: '#/components/parameters/CorrectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AttendanceCorrectionReview'}
+      responses:
+        '200':
+          description: Đã xử lý đơn
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttendanceCorrectionResponse'}
+        '400': {description: Đã xử lý, hết hạn, baseline thay đổi, tự duyệt hoặc lương đã xác nhận}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+        '404': {description: Không thấy đơn}
+  /api/attendance-corrections/me/history:
+    get:
+      summary: Nhân viên xem lịch sử công của mình
+      parameters:
+        - $ref: '#/components/parameters/AttendanceAssignmentId'
+      responses:
+        '200':
+          description: Lịch sử mới nhất trước; không tạo dữ liệu hồi tố
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AttendanceHistoryResponse'}
+        '403': {description: Chỉ Employee}
+        '404': {description: Không thấy hoặc không sở hữu phân công}
+  /api/attendance-corrections/history:
+    get:
+      summary: Admin hoặc quản lý xem lịch sử công theo phân công
+      parameters:
+        - $ref: '#/components/parameters/AttendanceAssignmentId'
+      responses:
+        '200':
+          description: Lịch sử trong phạm vi được phép
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AttendanceHistoryResponse'}
+        '403': {description: Không có quyền hoặc ngoài chi nhánh}
+        '404': {description: Không thấy phân công}
   /actuator/health:
     get:
       summary: Kiểm tra sức khỏe hệ thống

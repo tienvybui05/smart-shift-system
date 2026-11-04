@@ -85,4 +85,7 @@ public class PayrollRecord extends BaseTimeEntity {
 
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
+
+    @Column(name = "source_changed", nullable = false)
+    private boolean sourceChanged;
 }

@@ -14,6 +14,7 @@ spring:
 
 server:
   port: 8080
+  forward-headers-strategy: none
 
 app:
   scheduling:
@@ -42,6 +43,7 @@ app:
     sse:
       heartbeat-ms: ${NOTIFICATION_SSE_HEARTBEAT_MS:25000}
   attendance:
+    trusted-proxies: ${ATTENDANCE_TRUSTED_PROXIES:}
     absence-reconciliation:
       enabled: ${ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED:true}
       initial-delay-ms: ${ATTENDANCE_ABSENCE_RECONCILIATION_INITIAL_DELAY_MS:10000}

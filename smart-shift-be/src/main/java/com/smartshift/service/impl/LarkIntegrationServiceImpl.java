@@ -475,6 +475,8 @@ public class LarkIntegrationServiceImpl implements LarkIntegrationService {
             case PAYROLL_CONFIRMED -> "/payroll";
             case DEVICE_REGISTERED -> "/attendance/manage?tab=devices";
             case DEVICE_APPROVED, DEVICE_REVOKED -> "/attendance";
+            case ATTENDANCE_CORRECTION_CREATED -> "/attendance/manage?tab=corrections";
+            case ATTENDANCE_CORRECTION_APPROVED, ATTENDANCE_CORRECTION_REJECTED -> "/attendance";
         };
     }
 
