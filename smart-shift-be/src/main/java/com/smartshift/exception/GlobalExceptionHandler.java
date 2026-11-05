@@ -24,6 +24,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> handleStaleAssignment(
+        org.springframework.orm.ObjectOptimisticLockingFailureException exception, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT,"Phân công vừa được thay đổi; hãy tải lại lịch rồi thử lại",request.getRequestURI(),Map.of());
+    }
+
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     public void handleClientDisconnect(
         AsyncRequestNotUsableException exception,

@@ -62,6 +62,7 @@ public final class ScheduleAuditSnapshots {
         snapshot.put("workShiftId", assignment.getWorkShift().getId());
         snapshot.put("userId", assignment.getUser().getId());
         snapshot.put("employeeCode", assignment.getUser().getEmployeeCode());
+        snapshot.put("version", assignment.getVersion());
         snapshot.put("employeeName", assignment.getUser().getFullName());
         snapshot.put("positionId", assignment.getPosition().getId());
         snapshot.put("positionName", assignment.getPosition().getName());

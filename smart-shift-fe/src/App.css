@@ -836,6 +836,7 @@
 
 .dashboard-main {
   width: 100%;
+  min-width: 0;
   margin-left: 0;
   transition: margin-left 0.22s ease;
 }
@@ -3289,6 +3290,7 @@
 
   .sidebar-is-open .dashboard-main {
     margin-left: 0;
+    width: 100%;
   }
 
   .sidebar-toggle-button {
@@ -3296,7 +3298,7 @@
   }
 
   .mobile-menu-button {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   .welcome-panel {

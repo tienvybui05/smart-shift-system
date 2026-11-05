@@ -1,5 +1,7 @@
 import {
   EditOutlined,
+  CalendarOutlined,
+  UnorderedListOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -8,7 +10,7 @@ import {
   ThunderboltOutlined,
   UserAddOutlined,
 } from '@ant-design/icons'
-import { Alert, Button, Popconfirm, Select, Space, Table, Tag, Tooltip, message } from 'antd'
+import { Alert, Button, Popconfirm, Segmented, Select, Space, Table, Tag, Tooltip, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/apiError.js'
@@ -16,6 +18,7 @@ import ShiftAssignmentDrawer from '../../components/assignments/ShiftAssignmentD
 import ShiftRequirementDrawer from '../../components/requirements/ShiftRequirementDrawer.jsx'
 import GenerateWorkShiftsModal from '../../components/workshifts/GenerateWorkShiftsModal.jsx'
 import WorkShiftFormDrawer from '../../components/workshifts/WorkShiftFormDrawer.jsx'
+import ScheduleBoard from '../../components/schedules/ScheduleBoard.jsx'
 import { getPositions } from '../../services/referenceService.js'
 import { getSchedulePeriods } from '../../services/schedulePeriodService.js'
 import { saveShiftRequirements } from '../../services/shiftRequirementService.js'
@@ -78,6 +81,7 @@ export default function WorkShiftManagementPage() {
   const [requirementWorkShift, setRequirementWorkShift] = useState(null)
   const [assignmentWorkShift, setAssignmentWorkShift] = useState(null)
   const [statusChangingId, setStatusChangingId] = useState(null)
+  const [presentation, setPresentation] = useState('calendar')
 
   const selectedPeriod = schedulePeriods.find(
     (period) => period.id === selectedPeriodId,
@@ -380,8 +384,8 @@ export default function WorkShiftManagementPage() {
       <section className="page-heading">
         <div>
           <span className="eyebrow">Quản trị lịch làm việc</span>
-          <h1>Ca làm thực tế</h1>
-          <p>Sinh và điều chỉnh các ca làm cụ thể theo từng ngày trong kỳ xếp lịch.</p>
+          <h1>Lịch làm việc</h1>
+          <p>Sắp xếp một tuần làm việc cân bằng. Chọn nhân viên, kéo vào ca và để hệ thống kiểm tra phần còn lại.</p>
         </div>
         <div className="page-heading-actions">
           <Button
@@ -452,7 +456,7 @@ export default function WorkShiftManagementPage() {
         />
       )}
 
-      {selectedPeriod && (
+      {selectedPeriod && presentation === 'list' && (
         <Alert
           message={`${selectedPeriod.name} · ${selectedPeriod.locationName}`}
           description={`${formatDate(selectedPeriod.startDate)} – ${formatDate(selectedPeriod.endDate)} · Trạng thái: ${selectedPeriod.status}`}
@@ -461,7 +465,15 @@ export default function WorkShiftManagementPage() {
         />
       )}
 
-      <section className="management-card employee-table-card">
+      <div className="roster-view-switch"><Segmented value={presentation} onChange={setPresentation} options={[
+        { value: 'calendar', label: 'Lịch trực quan', icon: <CalendarOutlined /> },
+        { value: 'list', label: 'Danh sách', icon: <UnorderedListOutlined /> },
+      ]} /></div>
+
+      {selectedPeriod && presentation === 'calendar' && <ScheduleBoard key={selectedPeriod.id} periodId={selectedPeriod.id} statusFilter={statusFilter} refreshKey={refreshKey}
+        onOpenShift={setAssignmentWorkShift} onChanged={() => { setLoading(true); setRefreshKey(v => v + 1) }} />}
+
+      {presentation === 'list' && <section className="management-card employee-table-card">
         <div className="table-heading">
           <div>
             <strong>Danh sách ca làm</strong>
@@ -477,7 +489,7 @@ export default function WorkShiftManagementPage() {
           rowKey="id"
           scroll={{ x: 1000 }}
         />
-      </section>
+      </section>}
 
       <WorkShiftFormDrawer
         open={drawerOpen}

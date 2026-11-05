@@ -39,6 +39,7 @@ Hệ thống phù hợp với cửa hàng, nhà hàng hoặc doanh nghiệp vậ
 - React Router.
 - Ant Design và Ant Design Icons.
 - FullCalendar.
+- Lịch trực quan ngày/tuần/tháng, kéo thả phân công và kiểm tra ràng buộc khi lưu. Xem [hướng dẫn lịch trực quan](docs/INTERACTIVE_SCHEDULE.md).
 - Axios.
 - Server-Sent Events (SSE) cho thông báo realtime trên web.
 

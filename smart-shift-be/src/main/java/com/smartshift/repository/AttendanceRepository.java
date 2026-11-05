@@ -15,6 +15,9 @@ import java.util.Optional;
 
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
+    @Query("select a.shiftAssignment.id from Attendance a where a.shiftAssignment.workShift.schedulePeriod.id=:periodId")
+    List<Long> findAssignmentIdsForCalendar(@Param("periodId") Long periodId);
+
     boolean existsByShiftAssignmentId(Long shiftAssignmentId);
 
     @Modifying

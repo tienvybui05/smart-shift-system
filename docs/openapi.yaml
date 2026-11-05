@@ -8,6 +8,94 @@ servers:
     description: Local server
 components:
   schemas:
+    CalendarPlacementRequest:
+      type: object
+      required: [userId, targetWorkShiftId, reason]
+      description: Bỏ sourceAssignmentId khi thêm người. Khi chuyển phải gửi cả sourceAssignmentId, sourceWorkShiftId và expectedVersion từ board mới nhất.
+      properties:
+        userId: {type: integer, format: int64, minimum: 1}
+        targetWorkShiftId: {type: integer, format: int64, minimum: 1}
+        sourceAssignmentId: {type: integer, format: int64, minimum: 1, nullable: true}
+        sourceWorkShiftId: {type: integer, format: int64, minimum: 1, nullable: true}
+        expectedVersion: {type: integer, format: int64, minimum: 0, nullable: true}
+        reason: {type: string, minLength: 1, maxLength: 1000}
+    CalendarPlacementPreview:
+      type: object
+      properties:
+        eligible: {type: boolean}
+        violations: {type: array, items: {type: string}}
+        warnings: {type: array, items: {type: string}}
+        projectedDailyHours: {type: number}
+        projectedWeeklyHours: {type: number}
+    CalendarPlacementResponse:
+      type: object
+      properties:
+        assignmentId: {type: integer, format: int64}
+        userId: {type: integer, format: int64}
+        sourceWorkShiftId: {type: integer, format: int64, nullable: true}
+        targetWorkShiftId: {type: integer, format: int64}
+        version: {type: integer, format: int64}
+        warnings: {type: array, items: {type: string}}
+    ScheduleBoardResponse:
+      type: object
+      properties:
+        periodId: {type: integer, format: int64}
+        periodName: {type: string}
+        periodStatus: {type: string, enum: [DRAFT, GENERATING, PUBLISHED, LOCKED]}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        locationId: {type: integer, format: int64}
+        locationName: {type: string}
+        timezone: {type: string}
+        generatedAt: {type: string, format: date-time}
+        employees:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer, format: int64}
+              employeeCode: {type: string, nullable: true}
+              fullName: {type: string}
+              positionId: {type: integer, format: int64}
+              positionName: {type: string}
+              maxHoursPerDay: {type: number}
+              maxHoursPerWeek: {type: number}
+              minRestHours: {type: number}
+        shifts:
+          type: array
+          items:
+            type: object
+            properties:
+              editable: {type: boolean}
+              shift: {type: object, description: WorkShiftResponse như API quản lý ca; chứa id, workDate, startTime, endTime, durationMinutes, breakMinutes, overnight, shiftTemplateName, colorCode và status.}
+              requirements:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    positionId: {type: integer, format: int64}
+                    positionName: {type: string}
+                    minEmployees: {type: integer}
+                    maxEmployees: {type: integer}
+                    assignedEmployees: {type: integer}
+                    requirementId: {type: integer, format: int64}
+                    positionCode: {type: string}
+                    minimumMet: {type: boolean}
+                    maximumReached: {type: boolean}
+              assignments:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: integer, format: int64}
+                    userId: {type: integer, format: int64}
+                    employeeCode: {type: string, nullable: true}
+                    fullName: {type: string}
+                    positionId: {type: integer, format: int64}
+                    positionName: {type: string}
+                    source: {type: string, enum: [AUTO, MANUAL, SWAP, CLAIM]}
+                    version: {type: integer, format: int64, minimum: 0}
+                    editable: {type: boolean}
     WeeklyBudgetRequest:
       type: object
       properties:
@@ -130,6 +218,59 @@ components:
 security:
   - bearerAuth: []
 paths:
+  /api/schedule-periods/{periodId}/board:
+    parameters:
+      - &calendarPeriodId
+        in: path
+        name: periodId
+        required: true
+        schema: {type: integer, format: int64, minimum: 1}
+    get:
+      summary: Lịch trực quan và nhân viên hoạt động trong chi nhánh
+      description: Admin/Manager đúng phạm vi. Bao gồm cả lịch công bố/khóa để xem; không trả email, số điện thoại hay lương nhân viên.
+      responses:
+        '200':
+          description: Snapshot toàn kỳ; editable phản ánh trạng thái và thời gian hiện tại.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScheduleBoardResponse'}
+        '403': {description: Không có quyền hoặc khác chi nhánh}
+        '404': {description: Không tìm thấy kỳ lịch}
+  /api/schedule-periods/{periodId}/board/preview:
+    parameters: [*calendarPeriodId]
+    post:
+      summary: Xem trước kết quả phân công hoặc chuyển người giữa ca
+      description: Chỉ đọc; không bảo đảm chỗ trống khi lưu. Chuyển người loại trừ ca nguồn khỏi kiểm tra trùng lịch và giờ làm.
+      requestBody: &calendarPlacementBody
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CalendarPlacementRequest'}
+      responses:
+        '200':
+          description: Kết quả hợp lệ hoặc danh sách vi phạm; warnings không chặn lưu ở kỳ nháp.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CalendarPlacementPreview'}
+        '400': {description: Request sai hoặc nhân viên/kỳ lịch không khớp}
+        '403': {description: Ngoài phạm vi quản lý}
+        '409': {description: Nguồn hoặc version thay đổi; tải lại board}
+  /api/schedule-periods/{periodId}/board/place:
+    parameters: [*calendarPeriodId]
+    post:
+      summary: Lưu phân công kéo thả theo giao dịch nguyên tử
+      description: Khóa dữ liệu và kiểm tra lại toàn bộ. Chỉ ca OPEN/FILLED tương lai trong kỳ DRAFT; không chuyển phân công đã có công. Giữ mã phân công, tăng version và audit hai ca khi chuyển.
+      requestBody: *calendarPlacementBody
+      responses:
+        '200':
+          description: Đã lưu; ca nguồn có thể thiếu người và cần bổ sung trước công bố.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CalendarPlacementResponse'}
+        '400': {description: Vi phạm ràng buộc; giao dịch không thay đổi phân công}
+        '403': {description: Ngoài phạm vi quản lý}
+        '404': {description: Kỳ lịch, ca hoặc nhân viên không còn tồn tại}
+        '409': {description: Version hoặc dữ liệu xung đột; tải lại board}
   /api/attendances/export:
     get:
       summary: Xuất bảng chấm công Excel XLSX theo bộ lọc và phạm vi Admin/Manager

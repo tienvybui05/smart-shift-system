@@ -14,6 +14,9 @@ import java.util.Optional;
 
 public interface SchedulePeriodRepository extends JpaRepository<SchedulePeriod, Long> {
 
+    @Query(value="SELECT id FROM schedule_periods WHERE id=:id FOR UPDATE",nativeQuery=true)
+    Optional<Long> lockCalendarPeriod(@Param("id") Long id);
+
     @Query("""
         SELECT schedulePeriod
         FROM SchedulePeriod schedulePeriod

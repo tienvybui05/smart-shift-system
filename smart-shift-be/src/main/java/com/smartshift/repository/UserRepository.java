@@ -23,6 +23,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username);
 
+    @EntityGraph(attributePaths={"role","location","position"})
+    @Query("select u from User u where u.location.id=:locationId and u.active=true and u.role.name='ROLE_EMPLOYEE' and u.position is not null order by u.fullName,u.id")
+    List<User> findCalendarEmployees(@Param("locationId") Long locationId);
+
     @EntityGraph(attributePaths = {"role", "location", "position"})
     @Query("SELECT user FROM User user WHERE user.username = :username")
     Optional<User> findDetailedByUsername(@Param("username") String username);

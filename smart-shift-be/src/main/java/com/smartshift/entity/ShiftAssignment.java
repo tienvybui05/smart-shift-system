@@ -28,6 +28,10 @@ import java.time.Instant;
 @Table(name = "shift_assignments")
 public class ShiftAssignment {
 
+    @jakarta.persistence.Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
