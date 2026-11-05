@@ -24,6 +24,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingResource(
+        org.springframework.web.servlet.resource.NoResourceFoundException exception, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND,"Không tìm thấy tài nguyên",request.getRequestURI(),Map.of());
+    }
+
     @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ApiErrorResponse> handleStaleAssignment(
         org.springframework.orm.ObjectOptimisticLockingFailureException exception, HttpServletRequest request

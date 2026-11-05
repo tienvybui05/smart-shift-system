@@ -1,0 +1,83 @@
+rule_files:
+  - /etc/prometheus/alerts.yml
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'up{job="smart-shift",instance="backend:8080"}'
+        values: '0x8'
+    alert_rule_test:
+      - eval_time: 30s
+        alertname: SmartShiftBackendDown
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: SmartShiftBackendDown
+        exp_alerts:
+          - exp_labels:
+              job: smart-shift
+              instance: backend:8080
+              severity: critical
+            exp_annotations:
+              summary: Backend cannot be scraped for more than one minute
+  - interval: 15s
+    input_series:
+      - series: 'up{job="smart-shift",instance="backend:8080"}'
+        values: '1x8'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SmartShiftBackendDown
+        exp_alerts: []
+  - interval: 15s
+    input_series:
+      - series: 'http_server_requests_seconds_count{job="smart-shift",status="200"}'
+        values: '0+90x32'
+      - series: 'http_server_requests_seconds_count{job="smart-shift",status="500"}'
+        values: '0+10x32'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SmartShiftHttpErrors
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: More than 5 percent HTTP requests return server errors
+  - interval: 15s
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{job="smart-shift",uri="/api/users",le="0.5"}'
+        values: '0+50x32'
+      - series: 'http_server_requests_seconds_bucket{job="smart-shift",uri="/api/users",le="1"}'
+        values: '0+75x32'
+      - series: 'http_server_requests_seconds_bucket{job="smart-shift",uri="/api/users",le="3"}'
+        values: '0+99x32'
+      - series: 'http_server_requests_seconds_bucket{job="smart-shift",uri="/api/users",le="+Inf"}'
+        values: '0+100x32'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SmartShiftSlowRequests
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: HTTP p95 latency exceeds one second
+  - interval: 15s
+    input_series:
+      - series: 'jvm_memory_used_bytes{job="smart-shift",area="heap"}'
+        values: '900x48'
+      - series: 'jvm_memory_max_bytes{job="smart-shift",area="heap"}'
+        values: '1000x48'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: SmartShiftHeapPressure
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: JVM heap usage exceeds 85 percent
+  - interval: 15s
+    input_series:
+      - series: 'hikaricp_connections_pending{job="smart-shift",pool="HikariPool-1"}'
+        values: '1x16'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SmartShiftDatabasePoolWaiting
+        exp_alerts:
+          - exp_labels: {severity: warning, job: smart-shift, pool: HikariPool-1}
+            exp_annotations:
+              summary: Database connection pool has waiting threads

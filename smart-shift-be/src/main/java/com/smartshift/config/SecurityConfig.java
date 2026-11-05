@@ -120,10 +120,10 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(
-                      "/actuator/**",
-                      "/error"
-                  ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui.html", "/swagger-ui/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/livez", "/readyz").permitAll()
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
+                .requestMatchers("/error").permitAll()
                 
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(

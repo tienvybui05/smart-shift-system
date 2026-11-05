@@ -1,0 +1,96 @@
+name: Smart Shift verification
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    uses: ./.github/workflows/backend-ci.yml
+  frontend:
+    uses: ./.github/workflows/frontend-ci.yml
+  integration:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:25432/coverage_ci
+      SPRING_DATASOURCE_USERNAME: attendance_qa
+      SPRING_DATASOURCE_PASSWORD: attendance_local_only
+      BOOTSTRAP_ADMIN_PASSWORD: CoverageCi@123456
+      ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED: 'false'
+      LARK_ENABLED: 'false'
+      LARK_APP_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: smart-shift-be/pom.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+          cache-dependency-path: qa-automation/browser/package-lock.json
+      - name: Validate operational configuration
+        run: |
+          python qa-automation/scripts/setup_monitoring.py
+          docker compose -f compose.attendance-test.yml -f compose.monitoring.yml config --quiet
+          docker run --rm --entrypoint promtool -v "$PWD/ops/monitoring/prometheus:/etc/prometheus:ro" -v "$PWD/.secrets/metrics_password:/run/secrets/metrics_password:ro" prom/prometheus:v3.15.1 check config /etc/prometheus/prometheus.yml
+          docker run --rm --entrypoint promtool -v "$PWD/ops/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v3.15.1 test rules /etc/prometheus/alerts.test.yml
+      - name: Install OpenAPI validation tools
+        run: python -m pip install --disable-pip-version-check -r qa-automation/requirements-openapi.txt
+      - name: Install browser tooling
+        working-directory: qa-automation/browser
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+      - name: Prepare isolated test databases
+        run: |
+          docker compose -f compose.attendance-test.yml -f compose.coverage.yml up -d --wait postgres
+          docker exec smart-shift-attendance-db psql -U attendance_qa -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE coverage_ci'
+      - name: Collect JUnit coverage and package the exact QA application
+        id: package
+        working-directory: smart-shift-be
+        run: |
+          chmod +x mvnw
+          ./mvnw -Pcoverage-e2e -B --no-transfer-progress clean verify
+      - name: Start instrumented QA stack
+        id: qa
+        run: docker compose -f compose.attendance-test.yml -f compose.coverage.yml up -d --build --wait --wait-timeout 180
+      - name: Verify deployment and rollback control flow
+        shell: pwsh
+        run: ./qa-automation/scripts/test_deploy.ps1
+      - name: Verify monitoring access and business workflows
+        run: |
+          python qa-automation/scripts/openapi_sync.py
+          python qa-automation/scripts/openapi_e2e.py
+          python qa-automation/scripts/monitoring_e2e.py
+          python qa-automation/scripts/attendance_workflow_e2e.py
+          python qa-automation/scripts/budget_e2e.py
+          python qa-automation/scripts/split_shift_e2e.py
+          python qa-automation/scripts/excel_e2e.py
+          python qa-automation/scripts/calendar_e2e.py
+      - name: Run product, calendar and Swagger browser E2E
+        working-directory: qa-automation/browser
+        run: npm test
+      - name: Merge all coverage and enforce full-backend 71 percent line gate
+        if: ${{ always() && steps.package.outcome == 'success' && steps.qa.outcome == 'success' }}
+        working-directory: smart-shift-be
+        run: |
+          ./mvnw -Pcoverage-e2e -B --no-transfer-progress jacoco:dump@dump-e2e jacoco:merge@merge-coverage jacoco:report@combined-report jacoco:check@coverage-threshold
+          python ../qa-automation/scripts/coverage_report.py
+      - name: Stop isolated stack
+        if: always()
+        run: docker compose -f compose.attendance-test.yml -f compose.coverage.yml down

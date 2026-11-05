@@ -374,6 +374,7 @@ docker compose up --build -d
 - Web: <http://localhost:3000>
 - Backend trực tiếp: <http://localhost:8080>
 - API qua Nginx: <http://localhost:3000/api>
+- Swagger UI: <http://localhost:3000/swagger-ui/index.html>. Xem [cách đăng nhập JWT và thử API](docs/SWAGGER.md). QA dùng cổng `23000`.
 - PostgreSQL: `localhost:5432`
 
 ### 3. Kiểm tra container và log
@@ -729,6 +730,10 @@ smart-shift-system/
 ```
 
 ## Kiểm tra và xử lý lỗi
+
+JaCoCo đo riêng JUnit và tổng hợp JUnit/API/E2E trên toàn backend; CI yêu cầu line coverage tổng hợp ít nhất 71% và chạy browser bằng Playwright. Xem [kiểm thử và độ phủ](docs/TESTING_AND_COVERAGE.md).
+
+GitHub Actions chạy kiểm thử backend với PostgreSQL riêng, lint/build frontend và kiểm tra API trên stack QA. Test lỗi sẽ làm pipeline thất bại. Health check Docker, Prometheus/Grafana và script triển khai/quay lui: [hướng dẫn vận hành](docs/OPERATIONS.md).
 
 ### Build frontend
 

@@ -16,7 +16,28 @@ server:
   port: 8080
   forward-headers-strategy: none
 
+springdoc:
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  override-with-generic-response: false
+  packages-to-scan: com.smartshift.controller
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+    version: OPENAPI_3_0
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:true}
+    disable-swagger-default-url: true
+    persist-authorization: false
+    validator-url: ''
+    filter: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+    doc-expansion: none
+
 app:
+  monitoring:
+    enabled: ${MONITORING_ENABLED:false}
+    password-file: ${MONITORING_PASSWORD_FILE:/run/secrets/metrics_password}
   scheduling:
     hybrid:
       time-limit-seconds: ${SCHEDULING_TIME_LIMIT_SECONDS:8}
@@ -62,7 +83,25 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+      show-components: when-authorized
+      roles: ADMIN
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      application: smart-shift
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,300ms,1s,3s

@@ -26,6 +26,7 @@ services:
       JWT_SECRET: attendance-qa-secret-isolated-local-only-2026
       BOOTSTRAP_ADMIN_USERNAME: admin
       BOOTSTRAP_ADMIN_PASSWORD: Demo@123456
+      API_DOCS_ENABLED: 'true'
       LARK_ENABLED: "false"
       LARK_APP_ENABLED: "false"
       ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED: "false"
@@ -45,7 +46,8 @@ services:
       default:
         ipv4_address: 172.31.238.10
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 networks:
   default:
     ipam:

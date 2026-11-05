@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: Smart Shift
+    folder: Smart Shift
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

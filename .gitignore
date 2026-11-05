@@ -13,6 +13,7 @@ Thumbs.db
 
 # Environment & Logs
 .env
+.secrets/
 *.log
 
 # Dependencies & Build outputs (Backup cho cả BE & FE)

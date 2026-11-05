@@ -1,0 +1,5 @@
+**
+!target/
+!target/smart-shift-be-0.0.1-SNAPSHOT.jar
+!target/coverage-agent/
+!target/coverage-agent/jacoco-agent.jar

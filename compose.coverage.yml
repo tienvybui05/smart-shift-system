@@ -1,0 +1,12 @@
+# QA-only overlay. Uses a locally packaged, verified JAR; no production image is changed.
+services:
+  postgres:
+    ports:
+      - '127.0.0.1:25432:5432'
+  backend:
+    image: smart-shift-attendance-backend:coverage
+    build:
+      context: ./smart-shift-be
+      dockerfile: ../qa-automation/coverage/Dockerfile
+    ports:
+      - '127.0.0.1:26300:26300'

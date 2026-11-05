@@ -1,0 +1,12 @@
+{
+  "name": "smart-shift-browser-qa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reproducible local and CI browser checks for the isolated QA stack",
+  "scripts": {
+    "test": "node run.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}

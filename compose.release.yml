@@ -1,0 +1,6 @@
+# Local deployment overlay: build/tag images, then start with --no-build --wait.
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE to a local versioned image}
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE to a local versioned image}

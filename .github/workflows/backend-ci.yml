@@ -1,31 +1,33 @@
-name: Backend CI Pipeline
-
+name: Backend checks
 on:
-  push:
-    branches: [ "main", "master" ]
-    paths:
-      - 'smart-shift-be/**'
-      - '.github/workflows/backend-ci.yml'
-  pull_request:
-    branches: [ "main", "master" ]
-    paths:
-      - 'smart-shift-be/**'
+  workflow_call:
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/smart_shift_ci
+      SPRING_DATASOURCE_USERNAME: smart_shift_ci
+      SPRING_DATASOURCE_PASSWORD: isolated_ci_only
+      BOOTSTRAP_ADMIN_PASSWORD: CiOnly@123456
+      ATTENDANCE_ABSENCE_RECONCILIATION_ENABLED: 'false'
+      LARK_ENABLED: 'false'
+      LARK_APP_ENABLED: 'false'
     
     services:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_DB: smart_shift_db
-          POSTGRES_USER: smart_shift
-          POSTGRES_PASSWORD: smart_shift_password
+          POSTGRES_DB: smart_shift_ci
+          POSTGRES_USER: smart_shift_ci
+          POSTGRES_PASSWORD: isolated_ci_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U smart_shift_ci -d smart_shift_ci"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -40,16 +42,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+        cache-dependency-path: smart-shift-be/pom.xml
         
     - name: Grant execute permission for Maven Wrapper
       working-directory: ./smart-shift-be
       run: chmod +x mvnw
         
-    - name: Run Unit Tests (Continue on error)
+    - name: Test, validate migrations, and package
       working-directory: ./smart-shift-be
-      run: ./mvnw test -B
-      continue-on-error: true
-      
-    - name: Build and Package (Skip Tests)
-      working-directory: ./smart-shift-be
-      run: ./mvnw clean package -DskipTests -B
+      run: ./mvnw -B --no-transfer-progress clean verify
